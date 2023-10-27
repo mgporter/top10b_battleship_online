@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class Message {
   private Player sender;
   private MessageType messageType;
+  private GameRoom game;
 }

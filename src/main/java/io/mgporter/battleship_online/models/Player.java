@@ -12,4 +12,10 @@ public class Player {
   private String id;
   private String name;
 
+  public static Player fromName(String name) {
+    Player player = new Player();
+    player.setName(name);
+    return player;
+  }
+
 }
