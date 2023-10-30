@@ -24,13 +24,26 @@ public class GameRoom {
   // We will save the players directly to this object, and not save the players to the database
   private List<Player> playerList;
 
+  private GameState gameState;
+
   // static factory method
-  public static GameRoom createNew(int roomNumber, Player player) {
-    List<Player> playerList = new ArrayList<>();
-    playerList.add(player);
+  // public static GameRoom createNew(int roomNumber, Player player) {
+  //   List<Player> playerList = new ArrayList<>();
+  //   playerList.add(player);
+  //   GameRoom gameRoom = new GameRoom();
+  //   gameRoom.setRoomNumber(roomNumber);
+  //   gameRoom.setPlayerList(playerList);
+  //   GameState gameState = new GameState();
+  //   gameRoom.setGameState(gameState);
+  //   return gameRoom;
+  // }
+
+  public static GameRoom fromNumber(int number) {
     GameRoom gameRoom = new GameRoom();
-    gameRoom.setRoomNumber(roomNumber);
-    gameRoom.setPlayerList(playerList);
+    gameRoom.setRoomNumber(number);
+    gameRoom.setPlayerList(new ArrayList<>());
+    GameState gameState = new GameState();
+    gameRoom.setGameState(gameState);
     return gameRoom;
   }
 

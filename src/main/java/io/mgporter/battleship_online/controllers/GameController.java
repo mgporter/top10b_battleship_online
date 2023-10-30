@@ -2,6 +2,7 @@ package io.mgporter.battleship_online.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -9,8 +10,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.mgporter.battleship_online.services.GameRoomService;
+import io.mgporter.battleship_online.models.ApplicationState;
+import io.mgporter.battleship_online.models.GameRoom;
+import io.mgporter.battleship_online.models.GameState;
+import io.mgporter.battleship_online.models.Player;
+import io.mgporter.battleship_online.packets.GamePacket;
+import io.mgporter.battleship_online.packets.PacketType;
 
+@Controller
 @RestController
 @RequestMapping("/game")
 @CrossOrigin("*")
@@ -20,6 +27,20 @@ public class GameController {
 
   public GameController(SimpMessagingTemplate messagingTemplate) {
     this.messagingTemplate = messagingTemplate;
+  }
+
+
+
+  @MessageMapping("/initializeGame")
+  public void initializeGame(@Payload GamePacket packet) {
+    /* Create the gameboard object as a session-scoped object, add reference to gameboards for both players
+     * 
+     * When a person joins a room, they see a waiting screen and an initializegame packet is sent.
+     * At this time, the gamestate object is created and player one's ID is assigned to p1 slot.
+     * The player is also subscribed to the room topic.
+     * When a second player joins, the second player's id is put into the gamestate's p2 slot.
+     */
+
   }
 
   @MessageMapping("/getGameDetails")

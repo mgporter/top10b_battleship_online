@@ -7,31 +7,30 @@ import java.util.ArrayList;
 
 public class Gameboard {
   
-  private final List<List<Cell>> board;
-  private final List<Ship> ships;
-  private final String ownerId;
+  private List<List<Cell>> board;
+  private List<Ship> ships;
 
-  public Gameboard(String id) {
-    this.board = new ArrayList<>(Constants.rows);
+  public Gameboard() {
+    this.board = generateGameBoard();
+    this.ships = new ArrayList<>(Constants.maxShips);
+  }
+
+  private List<List<Cell>> generateGameBoard() {
+    List<List<Cell>> newBoard = new ArrayList<>(Constants.rows);
 
     for (int i = 0; i < Constants.rows; i++) {
       List<Cell> row = new ArrayList<>(Constants.cols);
       for (int j = 0; j < Constants.cols; j++) {
         row.add(new Cell());
       }
-      board.add(row);
+      newBoard.add(row);
     }
 
-    this.ships = new ArrayList<>(Constants.maxShips);
-    this.ownerId = id;
+    return newBoard;
   }
 
   public List<Ship> getShips() {
     return ships;
-  }
-
-  public String getOwnerId() {
-    return ownerId;
   }
 
   private boolean isInBounds(Coordinate coord) {
@@ -73,7 +72,7 @@ public class Gameboard {
     if (cell.isAlreadyHit()) throw new Error("Cell has already been attacked");
 
     Optional<Ship> ship = Optional.ofNullable(cell.getShip());
-    ship.ifPresent((s) -> s.receiveHit());
+    ship.ifPresent((s) -> s.receiveHit(cell));
 
     return ship;
   }
