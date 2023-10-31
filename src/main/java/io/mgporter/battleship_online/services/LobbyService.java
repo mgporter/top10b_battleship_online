@@ -40,7 +40,7 @@ public class LobbyService {
     return mongoTemplate.findOne(Query.query(Criteria.where("roomNumber").is(number)), GameRoom.class);
   }
 
-  public GameRoom createGameRoom(Player player) {
+  public GameRoom createGameRoom() {
 
     // Get a set of all room numbers
     Set<Integer> roomNumbers = getAllRoomNumbers();
@@ -58,7 +58,9 @@ public class LobbyService {
   public GameRoom joinGameRoom(Player player, int roomNumber) {
 
     GameRoom gameRoom = getRoomById(roomNumber);
-    gameRoom.getPlayerList().add(player);
+    System.out.println(roomNumber);
+    System.out.println(gameRoom);
+    gameRoom.addPlayerToGame(player);
     mongoTemplate.save(gameRoom, "GameRoom");
 
     return gameRoom;
@@ -67,7 +69,7 @@ public class LobbyService {
   public GameRoom leaveGameRoom(Player player, int roomNumber) {
 
     GameRoom gameRoom = getRoomById(roomNumber);
-    gameRoom.getPlayerList().remove(player);
+    gameRoom.removePlayerFromGame(player);
     mongoTemplate.save(gameRoom, "GameRoom");
       
     return gameRoom;

@@ -9,4 +9,5 @@ import io.mgporter.battleship_online.models.GameRoom;
 @Repository
 public interface GameRoomRepository extends MongoRepository<GameRoom, ObjectId> {
 
+
 }

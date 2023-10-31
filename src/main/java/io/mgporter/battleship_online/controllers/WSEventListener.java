@@ -7,6 +7,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import io.mgporter.battleship_online.models.GameRoom;
@@ -19,52 +20,41 @@ import io.mgporter.battleship_online.services.LobbyService;
 public class WSEventListener {
 
   private final SimpMessagingTemplate messageTemplate;
-  private final LobbyService lobbyService;
+  private final JoinController joinController;
 
-  public WSEventListener(SimpMessagingTemplate messagingTemplate, LobbyService lobbyService) {
+  public WSEventListener(SimpMessagingTemplate messagingTemplate, JoinController joinController) {
     this.messageTemplate = messagingTemplate;
-    this.lobbyService = lobbyService;
+    this.joinController = joinController;
   }
 
-  @EventListener
-  public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
-    StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-    Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
-    String username = (String) sessionAttributes.get("username");
-    String id = (String) sessionAttributes.get("id");
-    Player player = new Player(id, username);
+  // @EventListener
+  // public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+  //   StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+  //   System.out.println("Session disconnect event called. Event object: " + headerAccessor);
+  //   Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
+  //   String username = (String) sessionAttributes.get("username");
+  //   String id = (String) sessionAttributes.get("id");
+  //   Player player = new Player(id, username);
 
-    int roomNumber;
-    if (sessionAttributes.containsKey("room")) roomNumber = (int) sessionAttributes.get("room");
-    else roomNumber = -1;
+  //   int roomNumber;
+  //   if (sessionAttributes.containsKey("room")) roomNumber = (int) sessionAttributes.get("room");
+  //   else roomNumber = -1;
+  //   System.out.println(roomNumber);
 
-    if (roomNumber != -1) {
-      removePlayerFromGameRoom(player, roomNumber);
-    } else if (username != null) {
-      sendDisconnectMessageToLobby(player);
-    }
-  }
+  //   if (roomNumber != -1) {
+  //     // leaveGame(player, roomNumber);
+  //   }
+  //   if (username != null) {
+  //     sendDisconnectMessageToLobby(player);
+  //   }
+  // }
 
-  public void sendDisconnectMessageToLobby(Player player) {
-    System.out.println(player.getName() + " left the lobby");
-    Message message = new Message();
-    message.setSender(player);
-    message.setMessageType(MessageType.EXITEDLOBBY);
-    messageTemplate.convertAndSend("/lobby", message);
-  }
-
-  public void removePlayerFromGameRoom(Player player, int roomNumber) {
-    GameRoom gameRoom = lobbyService.getRoomById(roomNumber);
-    if (gameRoom.getPlayerList().size() <= 1) {
-      lobbyService.deleteGameRoom(roomNumber);
-      Message message = new Message(player, MessageType.GAMEREMOVED, gameRoom);
-      messageTemplate.convertAndSend("/lobby", message);
-    } else {
-      lobbyService.leaveGameRoom(player, roomNumber);
-      Message message = new Message(player, MessageType.EXITEDGAME, gameRoom);
-      messageTemplate.convertAndSend("/lobby", message);
-    }
-  }
-
+  // public void sendDisconnectMessageToLobby(Player player) {
+  //   System.out.println(player.getName() + " left the lobby");
+  //   Message message = new Message();
+  //   message.setSender(player);
+  //   message.setMessageType(MessageType.EXITEDLOBBY);
+  //   messageTemplate.convertAndSend("/lobby", message);
+  // }
 
 }
