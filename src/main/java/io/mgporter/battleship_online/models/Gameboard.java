@@ -41,18 +41,22 @@ public class Gameboard {
     return board.get(coord.row).get(coord.col);
   }
 
-  public void placeShip(Ship ship, List<Coordinate> coords) {
-    // coords[0] is the starting point, the bow of the ship
+  public void placeShip(Ship ship) {
 
-    int coordCount = coords.size();
+    int coordCount = ship.getLength();
+
+    List<byte[]> coords = ship.getLocation();
 
     if (ship.getLength() != coordCount) throw new Error("Ship's length does not match coordinates");
 
     for (int i = 0; i < coordCount; i++) {
-      Coordinate c = coords.get(i);
+      Coordinate c = new Coordinate(coords.get(i)[0], coords.get(i)[1]);
+
       if (!isInBounds(c)) throw new Error(
-        "Out of bounds coordinate: " + coords.get(i).row + ", " + coords.get(i).col
+        "Out of bounds coordinate: " + c.row + ", " + c.col
       );
+
+      // if (!isInBounds(c)) continue;
 
       Cell cell = getCellByCoordinate(c);
 
@@ -75,6 +79,10 @@ public class Gameboard {
     ship.ifPresent((s) -> s.receiveHit(cell));
 
     return ship;
+  }
+
+  public boolean allPlaced() {
+    return ships.size() == Constants.maxShips;
   }
 
 }

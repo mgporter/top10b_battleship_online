@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
    *          start game (after both users have pressed start button), all ships sunk 
    */
 
+// This packet is for sending out to players
 @AllArgsConstructor
 @NoArgsConstructor
 public class GamePacket {

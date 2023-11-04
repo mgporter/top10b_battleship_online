@@ -1,5 +1,8 @@
 package io.mgporter.battleship_online.controllers;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -11,11 +14,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.mgporter.battleship_online.models.ApplicationState;
+import io.mgporter.battleship_online.models.Coordinate;
 import io.mgporter.battleship_online.models.GameRoom;
 import io.mgporter.battleship_online.models.GameState;
+import io.mgporter.battleship_online.models.Gameboard;
 import io.mgporter.battleship_online.models.Player;
+import io.mgporter.battleship_online.models.Ship;
+import io.mgporter.battleship_online.packets.AttackPacket;
 import io.mgporter.battleship_online.packets.GamePacket;
 import io.mgporter.battleship_online.packets.PacketType;
+import io.mgporter.battleship_online.packets.PlacementPacket;
+import io.mgporter.battleship_online.services.LobbyService;
 
 @Controller
 @RestController
@@ -24,41 +33,64 @@ import io.mgporter.battleship_online.packets.PacketType;
 public class GameController {
   
   private final SimpMessagingTemplate messagingTemplate;
+  private final LobbyService lobbyService;
+  private GameRoom currentGameRoom; 
+  private int currentRoomNumber;
 
-  public GameController(SimpMessagingTemplate messagingTemplate) {
+  public GameController(SimpMessagingTemplate messagingTemplate, LobbyService lobbyService) {
     this.messagingTemplate = messagingTemplate;
+    this.lobbyService = lobbyService;
   }
 
-
-
-  @MessageMapping("/initializeGame")
-  public void initializeGame(@Payload GamePacket packet) {
-    /* Create the gameboard object as a session-scoped object, add reference to gameboards for both players
-     * 
-     * When a person joins a room, they see a waiting screen and an initializegame packet is sent.
-     * At this time, the gamestate object is created and player one's ID is assigned to p1 slot.
-     * The player is also subscribed to the room topic.
-     * When a second player joins, the second player's id is put into the gamestate's p2 slot.
-     */
-
+  @MessageMapping("/game/placeShip")
+  public void playerPlacedShip(@Payload PlacementPacket packet) {
+    messagingTemplate.convertAndSend("/game/" + packet.roomNumber, packet);
   }
 
-  @MessageMapping("/getGameDetails")
-  public void sendGameDetails() {
-    // Send game number, players in room, observers in room, board state for both players, but NOT ship placement
-  }
-
-  @MessageMapping("/sendShipPlacementData")
-  public void receiveShipPlacementData() {
-    // When user finishes ship placement, send a packet with details of where all of the ships are placed to the server
-    // The server adds them to the virtual board.
-  }
-
-  @MessageMapping("/sendGamePacket")
-  public void sendGamePacket() {
-    // When the player makes a move, check the server's virtual board for a result.
-    // Send the results back to both players.
+  @MessageMapping("/game/placementComplete")
+  public void addPlayerShips(@Payload PlacementPacket packet) {
     
+    GameRoom gameRoom = lobbyService.getRoomById(packet.roomNumber);
+    this.currentGameRoom = gameRoom;
+    this.currentRoomNumber = gameRoom.getRoomNumber();
+
+    GameState gameState = gameRoom.getGameState();
+    Gameboard board = gameState.getBoardById(packet.playerId);
+
+    for (Ship ship : packet.placementList) {
+      board.placeShip(ship);
+    }
+
+    lobbyService.saveGameRoom(gameRoom);
+
+    if (gameState.allPlacementsComplete()) {
+      GamePacket placedCompletePacket = new GamePacket();
+      placedCompletePacket.type = PacketType.GAME_ATTACK_PHASE_START;
+      messagingTemplate.convertAndSend("/game/" + packet.roomNumber, placedCompletePacket);
+    }
   }
+
+  @MessageMapping("/game/attack")
+  public void handleAttack(@Payload AttackPacket packet) {
+    Gameboard board = this.currentGameRoom.getGameState().getMyOpponentsBoard(packet.playerId);
+    Optional<Ship> ship = board.receiveAttack(new Coordinate(packet.row, packet.col));
+    ship.ifPresentOrElse((s) -> handleHit(packet, ship.get()), () -> handleMiss(packet));
+  }
+
+  public void handleHit(AttackPacket packet, Ship ship) {
+    packet.shipType = ship.getType();
+    if (!ship.isSunk()) {
+      packet.result = PacketType.ATTACK_HITSHIP;
+    } else {
+      packet.result = PacketType.ATTACK_SUNKSHIP;
+    }
+    messagingTemplate.convertAndSend("/game/" + packet.roomNumber, packet);
+  }
+
+  public void handleMiss(AttackPacket packet) {
+    packet.result = PacketType.ATTACK_MISSED;
+    messagingTemplate.convertAndSend("/game/" + packet.roomNumber, packet);
+  }
+
 
 }

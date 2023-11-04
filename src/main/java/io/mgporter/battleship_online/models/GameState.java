@@ -42,15 +42,27 @@ public class GameState {
   }
 
   public Gameboard getBoardById(String id) {
-    boolean isPlayerOne = id == this.playerOneId;
-    boolean isPlayerTwo = id == this.playerTwoId;
+    boolean isPlayerOne = id.equals(this.playerOneId);
+    boolean isPlayerTwo = id.equals(this.playerTwoId);
     if (!isPlayerOne && !isPlayerTwo) throw new Error("Incorrect ID passed");
     if (isPlayerOne) return this.playerOneGameboard;
     else return this.playerTwoGameboard;
   }
 
+  public Gameboard getMyOpponentsBoard(String id) {
+    boolean isPlayerOne = id.equals(this.playerOneId);
+    boolean isPlayerTwo = id.equals(this.playerTwoId);
+    if (!isPlayerOne && !isPlayerTwo) throw new Error("Incorrect ID passed");
+    if (isPlayerOne) return this.playerTwoGameboard;
+    else return this.playerOneGameboard;
+  }
+
   public boolean isReady() {
     return this.playerOneId != null && this.playerTwoId != null;
+  }
+
+  public boolean allPlacementsComplete() {
+    return this.playerOneGameboard.allPlaced() && this.playerTwoGameboard.allPlaced();
   }
 
   public void updatePlayers(List<Player> playerList) {

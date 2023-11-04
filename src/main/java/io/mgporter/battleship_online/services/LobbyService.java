@@ -40,6 +40,10 @@ public class LobbyService {
     return mongoTemplate.findOne(Query.query(Criteria.where("roomNumber").is(number)), GameRoom.class);
   }
 
+  public void saveGameRoom(GameRoom gameRoom) {
+    mongoTemplate.save(gameRoom, "GameRoom");
+  }
+
   public GameRoom createGameRoom() {
 
     // Get a set of all room numbers
@@ -55,6 +59,7 @@ public class LobbyService {
 
     return gameRoom;
   }
+
   public GameRoom joinGameRoom(Player player, int roomNumber) {
 
     GameRoom gameRoom = getRoomById(roomNumber);

@@ -10,30 +10,31 @@ public class Ship {
   
   private final byte shipId;
   private final ShipType type;
-  private final String displayName;
-  private final byte length;
   private byte hits;
-  private boolean isPlaced;
+  private List<byte[]> location;
+  // private boolean isPlaced;
   // private Direction direction;
-  private List<Byte> partsHit;
+  // private List<Byte> partsHit;
 
   public void receiveHit(Cell cell) {
     this.hits++;
-    this.partsHit.add(cell.getShipPartNumber());
+    // this.partsHit.add(cell.getShipPartNumber());
   }
 
   public boolean isSunk() {
-    return this.hits >= length;
+    return this.hits >= this.getLength();
   }
 
-  public Ship(byte shipId, ShipType type, String displayName, byte length) {
+  public int getLength() {
+    return this.location.size();
+  }
+
+  public Ship(byte shipId, ShipType type) {
     this.shipId = shipId;
     this.type = type;
-    this.length = length;
-    this.displayName = displayName;
     this.hits = 0;
-    this.isPlaced = false;
-    this.partsHit = new ArrayList<>(length);
+    // this.isPlaced = false;
+    // this.partsHit = new ArrayList<>(length);
   }
 
 }

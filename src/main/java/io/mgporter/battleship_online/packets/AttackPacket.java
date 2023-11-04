@@ -7,8 +7,8 @@ public class AttackPacket {
    public String playerId;
    public int roomNumber;
    public PacketType type;
+   public PacketType result;
    public byte row;
    public byte col;
-   public ShipType shiptype;
-   public boolean isSunk;
+   public ShipType shipType;
 }
