@@ -14,7 +14,6 @@ public class Message {
   private MessageType messageType;
   private int roomNumber;
   private List<Player> playerList;
-  // private GameRoom game;
 
   public static Message fromSenderAndType(Player player, MessageType type) {
     Message message = new Message();

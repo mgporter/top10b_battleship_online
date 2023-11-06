@@ -3,6 +3,7 @@ package io.mgporter.battleship_online.models;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
 import org.springframework.web.context.annotation.SessionScope;
 
 import java.util.List;
@@ -21,10 +22,7 @@ public class GameRoom {
   @Id
   private ObjectId id;
   private int roomNumber;
-
-  // We will save the players directly to this object, and not save the players to the database
   private List<Player> playerList;
-
   private GameState gameState;
 
   public static GameRoom fromNumber(int number) {
@@ -37,7 +35,6 @@ public class GameRoom {
   }
 
   public void addPlayerToGame(Player player) {
-
     this.playerList.add(player);
     if (this.playerList.size() <= 2) this.gameState.updatePlayers(this.playerList);
   }
@@ -56,7 +53,6 @@ public class GameRoom {
     }
 
     if (playerIndex == -1) throw new Error("This player is not in the game");
-    // if (playerIndex == -1) return;
 
     this.playerList.remove(playerIndex);
     if (playerIndex <= 1) this.gameState.updatePlayers(this.playerList);

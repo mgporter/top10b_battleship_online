@@ -11,7 +11,7 @@ public class Ship {
   private final byte shipId;
   private final ShipType type;
   private byte hits;
-  private List<byte[]> location;
+  private List<Coordinate> location;
   // private boolean isPlaced;
   // private Direction direction;
   // private List<Byte> partsHit;

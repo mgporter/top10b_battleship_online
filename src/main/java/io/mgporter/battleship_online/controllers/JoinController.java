@@ -1,5 +1,6 @@
 package io.mgporter.battleship_online.controllers;
 
+import java.security.Principal;
 import java.util.Map;
 
 import org.springframework.context.event.EventListener;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
+import io.mgporter.battleship_online.config.StompPrincipal;
 import io.mgporter.battleship_online.models.ApplicationState;
 import io.mgporter.battleship_online.models.GameRoom;
 import io.mgporter.battleship_online.models.GameState;
@@ -23,6 +25,7 @@ import io.mgporter.battleship_online.models.Player;
 import io.mgporter.battleship_online.packets.GamePacket;
 import io.mgporter.battleship_online.packets.PacketType;
 import io.mgporter.battleship_online.packets.PlayerListPacket;
+import io.mgporter.battleship_online.services.GameService;
 import io.mgporter.battleship_online.services.LobbyService;
 
 @Controller
@@ -34,22 +37,26 @@ public class JoinController {
   private final LobbyService lobbyService;
   private final SimpMessagingTemplate messagingTemplate;
 
-  public JoinController(LobbyService lobbyService, SimpMessagingTemplate messagingTemplate) {
+  public JoinController(
+    LobbyService lobbyService, 
+    SimpMessagingTemplate messagingTemplate) {
     this.lobbyService = lobbyService;
     this.messagingTemplate = messagingTemplate;
   }
 
   @MessageMapping("/joinGame")
-  public Message joinGame(@Payload Message message, SimpMessageHeaderAccessor headerAccessor) {
+  public void joinGame(@Payload Message message, SimpMessageHeaderAccessor headerAccessor, StompPrincipal principal) {
 
-    Player player = new Player(message.getSender().getId(), message.getSender().getName());
+    Player player = Player.fromPrincipal(principal);
+    // Player player = new Player(message.getSender().getId(), message.getSender().getName());
     int roomNumber = message.getRoomNumber();
 
     // Add the room to the headerAccessor
-    if (headerAccessor.getSessionAttributes().containsKey("room")) {
-      return Message.fromSenderAndType(player, MessageType.ERROR_ONEGAMEONLY);
+    if (principal.isInRoom()) {
+      Message rejectionMessage = Message.fromSenderAndType(player, MessageType.ERROR_ONEGAMEONLY);
+      messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/message", rejectionMessage);
     } else {
-      headerAccessor.getSessionAttributes().put("room", roomNumber);
+      principal.setRoomNumber(roomNumber);
     }
 
     // Send message to lobby
@@ -64,36 +71,34 @@ public class JoinController {
     sendUpdatedPlayerList(gameRoom);
 
     // Send out the GAME_START packet if the gamestate is ready (this is, has two players)
-    if (gameRoom.getGameState().isReady()) {
+    if (gameRoom.getGameState().bothPlayersReady()) {
       messagingTemplate.convertAndSend("/game/" + roomNumber, new GamePacket(PacketType.GAME_START));
     }
 
-    return outMessage;
   }
 
   @EventListener
   public void playerLeftGame(SessionDisconnectEvent event) {
     System.out.println("This Join Controller got the session disconnect event!");
     StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-    // System.out.println(event.getSessionId());
-    // System.out.println(event.getMessage());
-    // System.out.println(event.getSource());
-    // System.out.println(event.getCloseStatus());
-    // System.out.println(event.getUser());
-    System.out.println("Session disconnect event called. Event object: " + headerAccessor);
-    Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
-    String username = (String) sessionAttributes.get("username");
-    String id = (String) sessionAttributes.get("id");
-    Player player = new Player(id, username);
+    StompPrincipal principal = (StompPrincipal) headerAccessor.getUser();
+    Player player = Player.fromPrincipal(principal);
 
-    int roomNumber;
-    if (sessionAttributes.containsKey("room")) roomNumber = (int) sessionAttributes.get("room");
-    else roomNumber = -1;
+    // System.out.println("Session disconnect event called. Event object: " + headerAccessor);
+    // Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
+    // String username = (String) sessionAttributes.get("username");
+    // String id = (String) sessionAttributes.get("id");
+    // headerAccessor.
+    // Player player = new Player(id, username);
 
-    if (roomNumber != -1) {
+    // int roomNumber;
+    // if (sessionAttributes.containsKey("room")) roomNumber = (int) sessionAttributes.get("room");
+    // else roomNumber = -1;
+
+    if (principal.isInRoom()) {
       System.out.println("leave game function called");
-      leaveGame(player, roomNumber);
-    } else if (username != null) {   // if the player is not in a room and username is not null
+      leaveGame(player, principal.getRoomNumber());
+    } else {   // if the player is not in a room
       sendDisconnectMessageToLobby(player);
     }
   }

@@ -63,8 +63,6 @@ public class LobbyService {
   public GameRoom joinGameRoom(Player player, int roomNumber) {
 
     GameRoom gameRoom = getRoomById(roomNumber);
-    System.out.println(roomNumber);
-    System.out.println(gameRoom);
     gameRoom.addPlayerToGame(player);
     mongoTemplate.save(gameRoom, "GameRoom");
 

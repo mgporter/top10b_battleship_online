@@ -1,5 +1,6 @@
 package io.mgporter.battleship_online.models;
 
+import io.mgporter.battleship_online.config.StompPrincipal;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -19,6 +20,10 @@ public class Player {
     Player player = new Player();
     player.setName(name);
     return player;
+  }
+
+  public static Player fromPrincipal(StompPrincipal principal) {
+    return new Player(principal.getPlayerId(), principal.getPlayerName());
   }
 
 }
