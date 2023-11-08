@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import io.mgporter.battleship_online.config.StompPrincipal;
 import io.mgporter.battleship_online.models.GameRoom;
 import io.mgporter.battleship_online.models.Player;
 import io.mgporter.battleship_online.repositories.GameRoomRepository;

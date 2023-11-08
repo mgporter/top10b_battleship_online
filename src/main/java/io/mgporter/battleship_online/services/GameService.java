@@ -45,7 +45,7 @@ public class GameService {
 
   }
 
-  public Optional<Ship> attack(String playerId, Coordinate coordinates) {
+  public Optional<Ship> attackBy(String playerId, Coordinate coordinates) {
     boolean isPlayerOne = gameState.getPlayer(playerId);
     if (isPlayerOne) {
       gameState.playerOnesAttacks.add(coordinates);
@@ -103,6 +103,11 @@ public class GameService {
     for (Coordinate c : gameState.playerTwosAttacks) {
       playerTwoGameboard.receiveAttack(c);
     }
+  }
+
+  public boolean opponentAllSunk(String id) {
+    Gameboard gb = getMyOpponentsBoard(id);
+    return gb.allSunk();
   }
 
   @Override

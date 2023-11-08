@@ -92,32 +92,48 @@ public class GameController {
     startAttackPhasePacket.type = PacketType.GAME_ATTACK_PHASE_START;
     messagingTemplate.convertAndSend("/game/" + packet.roomNumber, startAttackPhasePacket);
 
+    System.out.println(gameRoom.getGameState().bothPlayersReady());
     if (principal.getPlayerId().equals(gameRoom.getPlayerOneId())) {
-      messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/message", new GamePacket(PacketType.ATTACK));
+      System.out.println("SEND OUT STARTING ATTACK PACKET");
+      messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/gameroom", new GamePacket(PacketType.ATTACK));
     }
   }
 
   @MessageMapping("/game/attack")
   public void handleAttack(@Payload AttackPacket packet) {
-    System.out.println("Game service is: " + gameService);
-    Optional<Ship> ship = gameService.attack(packet.playerId, new Coordinate(packet.row, packet.col));
+    Optional<Ship> ship = gameService.attackBy(packet.playerId, new Coordinate(packet.row, packet.col));
     ship.ifPresentOrElse((s) -> handleHit(packet, ship.get()), () -> handleMiss(packet));
   }
 
   public void handleHit(AttackPacket packet, Ship ship) {
     packet.shipType = ship.getType();
+    
     if (!ship.isSunk()) {
       packet.result = PacketType.ATTACK_HITSHIP;
+      messagingTemplate.convertAndSend("/game/" + packet.roomNumber, packet);
+
     } else {
-        packet.result = PacketType.ATTACK_SUNKSHIP;
-      // if (!board.allSunk()) {
-      //   packet.result = PacketType.ATTACK_SUNKSHIP;
-      // } else {
-      //   packet.result = PacketType.ATTACK_ALLSUNK;
-      // }
-      
-    }
-    messagingTemplate.convertAndSend("/game/" + packet.roomNumber, packet);
+      packet.result = PacketType.ATTACK_SUNKSHIP;
+
+      // Add information about the sunk ship, so that the client can display it on the opponent board
+      Coordinate startingCoordinate = ship.getStartingCoordinate();
+      packet.startingRow = startingCoordinate.getRow();
+      packet.startingCol = startingCoordinate.getCol();
+      packet.direction = ship.getDirection();
+
+      messagingTemplate.convertAndSend("/game/" + packet.roomNumber, packet);
+
+      // AttackPacket sunkShipPacket = AttackPacket.createSunkshipPacketFromPacket(packet);
+      // messagingTemplate.convertAndSend("/game/" + packet.roomNumber, sunkShipPacket);
+
+      System.out.println("Opponent all sunk?: " + gameService.opponentAllSunk(packet.playerId));
+      if (gameService.opponentAllSunk(packet.playerId)) {
+        AttackPacket allSunkPacket = new AttackPacket();
+        allSunkPacket.playerId = packet.playerId;   // This playerId has sunk all of his/her opponent's ships
+        allSunkPacket.type = PacketType.ATTACK_ALLSUNK;
+        messagingTemplate.convertAndSend("/game/" + packet.roomNumber, allSunkPacket);
+      }
+    }   
   }
 
   public void handleMiss(AttackPacket packet) {

@@ -1,6 +1,7 @@
 package io.mgporter.battleship_online.controllers;
 
 import org.springframework.asm.Handle;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.MessagingAdviceBean;
@@ -10,6 +11,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
 import java.security.Principal;
 import java.util.HashMap;
@@ -57,12 +60,20 @@ public class LobbyController {
   //   // messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/message", message);
   // }
 
-  @MessageMapping("/getCredentials")
-  public void sendCredentials(StompPrincipal principal) {
-    System.out.println(principal);
-    CredentialMessage message = new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
-    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/message", message);
-  }
+
+  // @EventListener
+  // public void testlistener(SessionSubscribeEvent event) {
+  //   System.out.println("Session subscribe event:");
+  //   // System.out.println(event.getMessage());
+  //   System.out.println(StompHeaderAccessor.wrap(event.getMessage()));
+  // }
+
+  // @MessageMapping("/getCredentials")
+  // public void sendCredentials(StompPrincipal principal) {
+  //   System.out.println(principal);
+  //   CredentialMessage message = new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
+  //   messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/lobby", message);
+  // }
 
   @GetMapping
   public ResponseEntity<List<GameRoom>> getAllGameRooms() {
@@ -88,6 +99,10 @@ public class LobbyController {
     Player player = Player.fromPrincipal(principal);
     Message joinLobbyMessage = Message.fromSenderAndType(player, MessageType.JOINLOBBY);
     messagingTemplate.convertAndSend("/lobby", joinLobbyMessage);
+
+    CredentialMessage credentialsMessage = 
+      new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/lobby", credentialsMessage);
 
     // Player newPlayer = new Player(message.getSender().getId(), message.getSender().getName());
     // Message outMessage = Message.fromSenderAndType(newPlayer, MessageType.JOINLOBBY);

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
 import io.mgporter.battleship_online.config.StompPrincipal;
 import io.mgporter.battleship_online.models.ApplicationState;
@@ -44,38 +45,61 @@ public class JoinController {
     this.messagingTemplate = messagingTemplate;
   }
 
+  /* This method is intercepted by PlayerAspect to check to join conditions */
+
   @MessageMapping("/joinGame")
-  public void joinGame(@Payload Message message, SimpMessageHeaderAccessor headerAccessor, StompPrincipal principal) {
+  public void joinGameAccept(@Payload Message message, StompPrincipal principal) {
 
     Player player = Player.fromPrincipal(principal);
-    // Player player = new Player(message.getSender().getId(), message.getSender().getName());
-    int roomNumber = message.getRoomNumber();
 
-    // Add the room to the headerAccessor
-    if (principal.isInRoom()) {
-      Message rejectionMessage = Message.fromSenderAndType(player, MessageType.ERROR_ONEGAMEONLY);
-      messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/message", rejectionMessage);
-    } else {
-      principal.setRoomNumber(roomNumber);
-    }
+    System.out.println("sending ACCEPTEDJOIN");
+    Message acceptedMessage = Message.fromSenderAndType(player, MessageType.ACCEPTEDJOIN);
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/lobby", acceptedMessage);
+
+  }
+
+  @MessageMapping("/gameloaded")
+  public void joinGameLoad(@Payload Message message, StompPrincipal principal) {
+
+    int roomNumber = message.getRoomNumber();
+    principal.setRoomNumber(roomNumber);
 
     // Send message to lobby
-    System.out.println(message.getSender().getName() + " has joined game " + roomNumber);
-    Message outMessage = Message.fromSenderTypeRoomnumber(player, MessageType.JOINGAME, roomNumber);
+    System.out.println(principal.getPlayerName() + " has joined game " + roomNumber);
+    Message outMessage = Message.fromPrincipalAndType(principal, MessageType.JOINGAME);
     messagingTemplate.convertAndSend("/lobby", outMessage);
 
     // Add the new player to the game's playerlist and update the database
-    GameRoom gameRoom = lobbyService.joinGameRoom(player, roomNumber);
+    GameRoom gameRoom = lobbyService.joinGameRoom(Player.fromPrincipal(principal), principal.getRoomNumber());
 
     // Inform everybody else in the gameroom on the new player arrangement
     sendUpdatedPlayerList(gameRoom);
 
     // Send out the GAME_START packet if the gamestate is ready (this is, has two players)
     if (gameRoom.getGameState().bothPlayersReady()) {
-      messagingTemplate.convertAndSend("/game/" + roomNumber, new GamePacket(PacketType.GAME_START));
+      messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), new GamePacket(PacketType.GAME_START));
     }
-
   }
+
+  // @EventListener
+  // public void handleGameroomSubscription(SessionSubscribeEvent event) {
+  //   StompHeaderAccessor header = StompHeaderAccessor.wrap(event.getMessage());
+  //   String destination = header.getDestination();
+  //   System.out.println(destination);
+  //   System.out.println(header);
+    
+  //   if (!destination.startsWith("/game")) return;
+  //   int roomNumber = Integer.valueOf(destination.substring(6));
+  //   System.out.println(roomNumber);
+
+  //   StompPrincipal principal = (StompPrincipal) header.getUser();
+  //   System.out.println(principal);
+
+  //   if (principal.isInRoom()) return;
+    
+    
+  // }
+
 
   @EventListener
   public void playerLeftGame(SessionDisconnectEvent event) {

@@ -83,17 +83,14 @@ public class Gameboard {
     if (cell.isAlreadyHit()) throw new Error("Cell has already been attacked");
 
     Optional<Ship> ship = Optional.ofNullable(cell.getShip());
-    ship.ifPresent((s) -> s.receiveHit(cell));
-
-    System.out.println("GameBoard receive attack function called!");
-    for (Ship s : ships) {
-      System.out.println(s.getLocation());
-    }
+    
+    ship.ifPresent((s) -> {
+      s.receiveHit(cell);
+      if (s.isSunk()) sunkShips++;
+    });
 
     return ship;
   }
-
-
 
   public boolean allPlaced() {
     return ships.size() == Constants.maxShips;
