@@ -1,4 +1,4 @@
-package io.mgporter.battleship_online.models;
+package io.mgporter.battleship_online.enums;
 
 public enum ShipType {
   BATTLESHIP, CARRIER, PATROLBOAT, SUBMARINE, DESTROYER

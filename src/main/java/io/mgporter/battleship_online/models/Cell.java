@@ -13,14 +13,12 @@ public class Cell {
   private byte shipPartNumber;
 
   public void addShip(Ship ship, byte partNum) {
-    if (hasShip) throw new Error("Cell already has ship");
     this.hasShip = true;
     this.ship = ship;
     this.shipPartNumber = partNum;
   }
 
   public void removeShip() {
-    if (!hasShip) throw new Error("No ship to remove");
     this.hasShip = false;
     this.ship = null;
   }

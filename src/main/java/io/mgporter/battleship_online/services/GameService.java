@@ -17,9 +17,14 @@ import io.mgporter.battleship_online.models.Ship;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * This service provides functions to modify the game state that each player can see. 
+ * In particular, it interfaces directly with the gameboards with which attacks and
+ * ship placements are checked.
+  */
+
 @Component
 @Scope(scopeName = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
-// @SessionScope
 @Data
 public class GameService {
   
@@ -32,21 +37,15 @@ public class GameService {
     this.playerTwoGameboard = new Gameboard();
   }
 
-  public void addShipsToBoard(String playerId, List<Ship> ships) {
-    boolean isPlayerOne = gameState.getPlayer(playerId);
-    // Gameboard board = isPlayerOne ? playerOneGameboard : playerTwoGameboard;
-
-    // for (Ship ship : ships) {
-    //   board.placeShip(ship);
-    // }
-
+  public void saveShipsInGameState(String playerId, List<Ship> ships) {
+    boolean isPlayerOne = gameState.isPlayerOne(playerId);
     if (isPlayerOne) gameState.setPlayerOneShipList(ships);
     else gameState.setPlayerTwoShipList(ships);
 
   }
 
   public Optional<Ship> attackBy(String playerId, Coordinate coordinates) {
-    boolean isPlayerOne = gameState.getPlayer(playerId);
+    boolean isPlayerOne = gameState.isPlayerOne(playerId);
     if (isPlayerOne) {
       gameState.playerOnesAttacks.add(coordinates);
       return playerTwoGameboard.receiveAttack(coordinates);
@@ -70,22 +69,17 @@ public class GameService {
 
   public Gameboard getBoardById(String id) {
     boolean isPlayerOne = id.equals(gameState.getPlayerOneId());
-    boolean isPlayerTwo = id.equals(gameState.getPlayerTwoId());
-    if (!isPlayerOne && !isPlayerTwo) throw new Error("Incorrect ID passed");
     if (isPlayerOne) return this.playerOneGameboard;
     else return this.playerTwoGameboard;
   }
 
   public Gameboard getMyOpponentsBoard(String id) {
     boolean isPlayerOne = id.equals(gameState.getPlayerOneId());
-    boolean isPlayerTwo = id.equals(gameState.getPlayerTwoId());
-    if (!isPlayerOne && !isPlayerTwo) throw new Error("Incorrect ID passed");
     if (isPlayerOne) return this.playerTwoGameboard;
     else return this.playerOneGameboard;
   }
 
   public void loadDataToBoard(GameState gameState) {
-    System.out.println("loading data to board!");
     this.gameState = gameState;
 
     for (Ship ship : gameState.playerOneShipList) {
@@ -108,6 +102,14 @@ public class GameService {
   public boolean opponentAllSunk(String id) {
     Gameboard gb = getMyOpponentsBoard(id);
     return gb.allSunk();
+  }
+
+  public String getPlayerOneId() {
+    return this.gameState.getPlayerOneId();
+  }
+
+  public String getPlayerTwoId() {
+    return this.gameState.getPlayerTwoId();
   }
 
   @Override

@@ -1,5 +1,6 @@
 package io.mgporter.battleship_online.models;
 
+import io.mgporter.battleship_online.enums.MessageType;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor

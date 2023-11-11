@@ -3,6 +3,7 @@ package io.mgporter.battleship_online.models;
 import java.util.List;
 
 import io.mgporter.battleship_online.config.StompPrincipal;
+import io.mgporter.battleship_online.enums.MessageType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,12 @@ public class Message {
   private MessageType messageType;
   private int roomNumber;
   private List<Player> playerList;
+
+  public static Message fromType(MessageType type) {
+    Message message = new Message();
+    message.setMessageType(type);
+    return message;
+  }
 
   public static Message fromSenderAndType(Player player, MessageType type) {
     Message message = new Message();

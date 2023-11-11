@@ -1,90 +1,82 @@
 package io.mgporter.battleship_online.controllers;
 
-import org.springframework.asm.Handle;
-import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.MessagingAdviceBean;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.messaging.simp.annotation.SubscribeMapping;
-import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
-import java.security.Principal;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.mgporter.battleship_online.config.StompPrincipal;
-import io.mgporter.battleship_online.models.ApplicationState;
+import io.mgporter.battleship_online.enums.MessageType;
+import io.mgporter.battleship_online.models.Constants;
 import io.mgporter.battleship_online.models.CredentialMessage;
 import io.mgporter.battleship_online.models.GameRoom;
-import io.mgporter.battleship_online.models.GameState;
 import io.mgporter.battleship_online.models.Message;
-import io.mgporter.battleship_online.models.MessageType;
 import io.mgporter.battleship_online.models.Player;
-import io.mgporter.battleship_online.packets.GamePacket;
-import io.mgporter.battleship_online.packets.PacketType;
 import io.mgporter.battleship_online.services.LobbyService;
 
-@Controller
+
+/**
+ * This controller handles the functions related to the lobby.
+  */
+
+
 @RestController
-@RequestMapping("/gamerooms")
 @CrossOrigin(origins = "*")
 public class LobbyController {
   
   private final LobbyService lobbyService;
   private final SimpMessagingTemplate messagingTemplate;
 
-  public LobbyController(LobbyService lobbyService, SimpMessagingTemplate messagingTemplate) {
+  public LobbyController(
+    LobbyService lobbyService,
+    SimpMessagingTemplate messagingTemplate) {
     this.lobbyService = lobbyService;
     this.messagingTemplate = messagingTemplate;
   }
 
-  // @SubscribeMapping("/message")
-  // public CredentialMessage sendCredentialstwo(StompPrincipal principal) {
-  //   System.out.println(principal);
-  //   CredentialMessage message = new CredentialMessage(principal.getPlayerName(), principal.getPlayerId());
-  //   return message;
-  //   // messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/message", message);
-  // }
+  /**
+   * Return a list of all the gamerooms currently active. The GameState associated with
+   * the gameroom is not returned in order to save bandwidth.
+   * 
+   * @return
+    */
 
-
-  // @EventListener
-  // public void testlistener(SessionSubscribeEvent event) {
-  //   System.out.println("Session subscribe event:");
-  //   // System.out.println(event.getMessage());
-  //   System.out.println(StompHeaderAccessor.wrap(event.getMessage()));
-  // }
-
-  // @MessageMapping("/getCredentials")
-  // public void sendCredentials(StompPrincipal principal) {
-  //   System.out.println(principal);
-  //   CredentialMessage message = new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
-  //   messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/lobby", message);
-  // }
-
-  @GetMapping
+  @GetMapping("/getGameRooms")
   public ResponseEntity<List<GameRoom>> getAllGameRooms() {
     return new ResponseEntity<List<GameRoom>>(lobbyService.getAllRooms(), HttpStatus.OK);
   }
 
-  @PostMapping
+  /**
+   * Creates a new GameRoom, which will have a unique 4-digit id. Also checks to make sure 
+   * that there are not already too many game rooms.
+   * 
+   * @param payload
+   * @return
+    */
+
+  @PostMapping("/createGameRoom")
   public ResponseEntity<GameRoom> createGameRoom(@RequestBody Map<String, String> payload) {
 
     Player player = new Player(payload.get("id"), payload.get("playerName"));
-    GameRoom newRoom = lobbyService.createGameRoom();
+    Set<Integer> gameRoomNumbers = lobbyService.getAllRoomNumbers();
+
+    if (gameRoomNumbers.size() > Constants.MAXGAMEROOMS) {
+      Message errorMessage = Message.fromSenderAndType(player, MessageType.MAXGAMEROOMSREACHED);
+      messagingTemplate.convertAndSendToUser(player.getId(), "/queue/player", errorMessage);
+      return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
+    }
+    
+    GameRoom newRoom = lobbyService.createGameRoom(gameRoomNumbers);
     Message message = Message.fromSenderTypeRoomnumber(player, MessageType.CREATEDGAME, newRoom.getRoomNumber());
 
     messagingTemplate.convertAndSend("/lobby", message);
@@ -92,43 +84,42 @@ public class LobbyController {
     return new ResponseEntity<>(newRoom, HttpStatus.CREATED);
   }
 
-  // Can use @Header("simpSessionId") String sessionId as a parameter to quickly get the sessionId, 
-  @MessageMapping("/joinLobby")
-  public void addUserToLobby(@Payload Message message, SimpMessageHeaderAccessor headerAccessor, StompPrincipal principal) {
 
-    Player player = Player.fromPrincipal(principal);
+  /**
+   * Sends a message to the lobby when the player joins (that is, when the client
+   * sends a /joinLobby packet). If the user has a name that they have used previously,
+   * then it is sent in the payload, and we can set it to their name. In this way, the name is
+   * set by the user unless they do not have one, while the playerId is set by the server. This
+   * information is sent back to the client in the CREDENTIALS packet.
+   * 
+   * @param username
+   * @param principal
+    */
+
+  public void addUserToLobby(@Payload String username, StompPrincipal principal) {
+    
+    principal.setPlayerName(username);
+
+    Player player = new Player(principal.getId(), principal.getPlayerName());
     Message joinLobbyMessage = Message.fromSenderAndType(player, MessageType.JOINLOBBY);
     messagingTemplate.convertAndSend("/lobby", joinLobbyMessage);
 
     CredentialMessage credentialsMessage = 
       new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
-    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/lobby", credentialsMessage);
-
-    // Player newPlayer = new Player(message.getSender().getId(), message.getSender().getName());
-    // Message outMessage = Message.fromSenderAndType(newPlayer, MessageType.JOINLOBBY);
-
-    // headerAccessor.getSessionAttributes().put("username", newPlayer.getName());
-    // headerAccessor.getSessionAttributes().put("id", newPlayer.getId());
-    
-
-    // Message newMessage = Message.fromSenderAndType(newPlayer, MessageType.ERROR_ONEGAMEONLY);
-    // messagingTemplate.convertAndSendToUser(principal.getName(), 
-    //   "/queue/hello", newMessage);
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/player", credentialsMessage);
 
   }
 
-  // @MessageMapping("/changeName")
-  // public void changePlayerName(@Payload String newName, SimpMessageHeaderAccessor headerAccessor) {
-  //   headerAccessor.getSessionAttributes().replace("username", newName);
-  //   System.out.println("Player name changed to " + newName);
-  // }
-
+  
   @MessageMapping("/changeName")
   public void changePlayerName(@Payload String newName, StompPrincipal principal) {
-    System.out.println(principal);
     principal.setPlayerName(newName);
-    System.out.println("Player name changed to " + newName);
   }
 
+
+  public void handlePlayerLeavingLobby(StompPrincipal principal) {
+    Message disconnectMessage = Message.fromPrincipalAndType(principal, MessageType.EXITEDLOBBY);
+    messagingTemplate.convertAndSend("/lobby", disconnectMessage);
+  }
 
 }

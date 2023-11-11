@@ -1,7 +1,7 @@
 package io.mgporter.battleship_online.packets;
 
-import io.mgporter.battleship_online.models.Ship;
-import io.mgporter.battleship_online.models.ShipType;
+import io.mgporter.battleship_online.enums.PacketType;
+import io.mgporter.battleship_online.enums.ShipType;
 
 public class AttackPacket {
 

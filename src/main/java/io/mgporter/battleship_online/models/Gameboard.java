@@ -2,10 +2,11 @@ package io.mgporter.battleship_online.models;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
+/* The Gameboard stores the logic needed to add and attack ships */
 
 @Component
 public class Gameboard {
@@ -16,16 +17,16 @@ public class Gameboard {
 
   public Gameboard() {
     this.board = generateGameBoard();
-    this.ships = new ArrayList<>(Constants.maxShips);
+    this.ships = new ArrayList<>(Constants.MAXSHIPS);
     this.sunkShips = 0;
   }
 
   private List<List<Cell>> generateGameBoard() {
-    List<List<Cell>> newBoard = new ArrayList<>(Constants.rows);
+    List<List<Cell>> newBoard = new ArrayList<>(Constants.ROWS);
 
-    for (int i = 0; i < Constants.rows; i++) {
-      List<Cell> row = new ArrayList<>(Constants.cols);
-      for (int j = 0; j < Constants.cols; j++) {
+    for (int i = 0; i < Constants.ROWS; i++) {
+      List<Cell> row = new ArrayList<>(Constants.COLS);
+      for (int j = 0; j < Constants.COLS; j++) {
         row.add(new Cell());
       }
       newBoard.add(row);
@@ -39,7 +40,7 @@ public class Gameboard {
   }
 
   private boolean isInBounds(Coordinate coord) {
-    return coord.getRow() >= 0 && coord.getRow() < Constants.rows && coord.getCol() >= 0 && coord.getCol() < Constants.cols;
+    return coord.getRow() >= 0 && coord.getRow() < Constants.ROWS && coord.getCol() >= 0 && coord.getCol() < Constants.COLS;
   }
 
   private Cell getCellByCoordinate(Coordinate coord) {
@@ -52,21 +53,17 @@ public class Gameboard {
 
     List<Coordinate> coords = ship.getLocation();
 
-    if (ship.getLength() != coordCount) throw new Error("Ship's length does not match coordinates");
+    // We do not need to do this check on the server.
+    /* if (ship.getLength() != coordCount) 
+      throw new Error("Ship's length does not match coordinates"); */
 
     for (int i = 0; i < coordCount; i++) {
-      // Coordinate c = new Coordinate(coords[i][0], coords[i][1]);
 
       Coordinate c = coords.get(i);
 
-      if (!isInBounds(c)) throw new Error(
-        "Out of bounds coordinate: " + c.getRow() + ", " + c.getCol()
-      );
-
-      // if (!isInBounds(c)) continue;
+      if (!isInBounds(c)) continue;
 
       Cell cell = getCellByCoordinate(c);
-
       cell.addShip(ship, (byte) (i+1));
     }
 
@@ -80,7 +77,8 @@ public class Gameboard {
   public Optional<Ship> receiveAttack(Coordinate coord) {
     Cell cell = getCellByCoordinate(coord);
 
-    if (cell.isAlreadyHit()) throw new Error("Cell has already been attacked");
+    // We do not need to do this check on the server
+    /* if (cell.isAlreadyHit()) throw new Error("Cell has already been attacked"); */
 
     Optional<Ship> ship = Optional.ofNullable(cell.getShip());
     
@@ -93,7 +91,7 @@ public class Gameboard {
   }
 
   public boolean allPlaced() {
-    return ships.size() == Constants.maxShips;
+    return ships.size() == Constants.MAXSHIPS;
   }
 
   public boolean allSunk() {
@@ -104,9 +102,5 @@ public class Gameboard {
   public String toString() {
     return "Gameboard with " + ships.size() + " ships";
   }
-
-  // public boolean getSunkShipCount() {
-  //   ships.stream().filter(s -> s.isSunk()).count();
-  // }
 
 }

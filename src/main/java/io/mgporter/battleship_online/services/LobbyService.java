@@ -5,11 +5,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import io.mgporter.battleship_online.config.StompPrincipal;
@@ -17,38 +15,72 @@ import io.mgporter.battleship_online.models.GameRoom;
 import io.mgporter.battleship_online.models.Player;
 import io.mgporter.battleship_online.repositories.GameRoomRepository;
 
+/**
+ * This service interfaces with the database to create, store, and retreive
+ * game rooms.
+  */
+
 @Service
 public class LobbyService {
   
   private final GameRoomRepository gameRoomRepository;
   private final MongoTemplate mongoTemplate;
 
-  // Load the GameRoomRepository by dependency injection
-  public LobbyService(GameRoomRepository gameRoomRepository, MongoTemplate mongoTemplate) {
+  public LobbyService(
+    GameRoomRepository gameRoomRepository, 
+    MongoTemplate mongoTemplate) {
     this.gameRoomRepository = gameRoomRepository;
     this.mongoTemplate = mongoTemplate;
   }
 
+  /**
+   * Returns ONLY the roomNumber and playerList fields of each gameroom
+   * for display in the lobby.
+   * 
+   * @return
+    */
   public List<GameRoom> getAllRooms() {
-    return gameRoomRepository.findAll();
+    Query query = new Query();
+    query.fields().include("roomNumber", "playerList").exclude("id");
+    return mongoTemplate.find(query, GameRoom.class);
   }
+
+  /**
+   * Returns a set of numbers which have already been used for gamerooms.
+   * 
+   * @return
+    */
 
   public Set<Integer> getAllRoomNumbers() {
-    return gameRoomRepository.findAll().stream().map(x -> x.getRoomNumber()).collect(Collectors.toSet());
+    Query query = new Query();
+    query.fields().include("roomNumber").exclude("id");
+    return mongoTemplate
+      .find(query, GameRoom.class)
+      .stream()
+      .map(x -> x.getRoomNumber())
+      .collect(Collectors.toSet());
   }
 
-  public GameRoom getRoomById(int number) {
-    return mongoTemplate.findOne(Query.query(Criteria.where("roomNumber").is(number)), GameRoom.class);
+  public Optional<GameRoom> getRoomById(int number) {
+    return Optional.ofNullable(
+      mongoTemplate.findOne(
+        Query.query(Criteria.where("roomNumber").is(number)), 
+      GameRoom.class));
   }
 
   public void saveGameRoom(GameRoom gameRoom) {
     mongoTemplate.save(gameRoom, "GameRoom");
   }
 
-  public GameRoom createGameRoom() {
+  /**
+   * Create a new game room and assign it a unique number by creating a 
+   * random four-digit number, and then checking to make sure no other
+   * game rooms use that number.
+   * 
+   * @return
+    */
 
-    // Get a set of all room numbers
-    Set<Integer> roomNumbers = getAllRoomNumbers();
+  public GameRoom createGameRoom(Set<Integer> roomNumbers) {
 
     // Keep generating a random room number until one is found that isn't already used
     int randomRoomNumber;
@@ -57,30 +89,62 @@ public class LobbyService {
     } while (roomNumbers.contains(randomRoomNumber));
 
     GameRoom gameRoom = gameRoomRepository.insert(GameRoom.fromNumber(randomRoomNumber));
+    
+    return gameRoom;
+  }
+
+  /**
+   * This method is used to check whether a player can join a room, so we intentionally
+   * return null if the room is not found. That way, we can be sure to not let the player
+   * join a room that doesn't exist.
+   *
+   * @param roomNumber
+   * @return the number of players in the room, or null if the room is not found.
+    */
+
+  public Integer getNumberOfPlayersInRoom(int roomNumber) {
+
+    Query query = new Query();
+    query.addCriteria(
+        Criteria.where("roomNumber").is(roomNumber)
+      ).fields().include("playerList").exclude("id");
+
+    GameRoom gameRoom = mongoTemplate.findOne(query, GameRoom.class);
+
+    if (gameRoom == null) return null;
+    else return gameRoom.getPlayerList().size();
+  }
+
+  public Optional<GameRoom> joinGameRoom(StompPrincipal principal) {
+
+    Optional<GameRoom> gameRoom = getRoomById(principal.getRoomNumber());
+    gameRoom.ifPresent(g -> joinGameRoom(principal, g));
 
     return gameRoom;
   }
 
-  public GameRoom joinGameRoom(Player player, int roomNumber) {
+  public void joinGameRoom(StompPrincipal principal, GameRoom gameRoom) {
 
-    GameRoom gameRoom = getRoomById(roomNumber);
-    gameRoom.addPlayerToGame(player);
+    gameRoom.addPlayerToGame(Player.fromPrincipal(principal));
     mongoTemplate.save(gameRoom, "GameRoom");
-
-    return gameRoom;
   }
 
-  public GameRoom leaveGameRoom(Player player, int roomNumber) {
+  public Optional<GameRoom> leaveGameRoom(StompPrincipal principal) {
 
-    GameRoom gameRoom = getRoomById(roomNumber);
-    gameRoom.removePlayerFromGame(player);
-    mongoTemplate.save(gameRoom, "GameRoom");
+    Optional<GameRoom> gameRoom = getRoomById(principal.getRoomNumber());
+    gameRoom.ifPresent((g) -> {
+      g.removePlayerFromGame(Player.fromPrincipal(principal));
+      mongoTemplate.save(g, "GameRoom");
+    });
       
     return gameRoom;
   }
 
   public void deleteGameRoom(int roomNumber) {
-    mongoTemplate.findAndRemove(Query.query(Criteria.where("roomNumber").is(roomNumber)), GameRoom.class);
+    mongoTemplate.findAndRemove(
+      Query.query(
+        Criteria.where("roomNumber").is(roomNumber)
+      ), GameRoom.class);
   }
 
 }

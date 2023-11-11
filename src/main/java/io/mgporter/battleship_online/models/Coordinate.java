@@ -22,20 +22,3 @@ public class Coordinate {
     return "Coordinate (" + row + ", " + col + ")";
   }
 }
-
-
-/* public class Coordinate {
-  public final byte[] coordinates;
-
-  public Coordinate(byte row, byte col) {
-    this.coordinates = new byte[] {row, col};
-  }
-
-  public byte getRow() {
-    return coordinates[0];
-  }
-
-  public byte getCol() {
-    return coordinates[1];
-  }
-} */

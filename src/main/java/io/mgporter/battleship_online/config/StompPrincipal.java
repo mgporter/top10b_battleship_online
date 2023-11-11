@@ -2,27 +2,36 @@ package io.mgporter.battleship_online.config;
 
 import java.security.Principal;
 
+import io.mgporter.battleship_online.models.Constants;
 import lombok.Data;
+
+/** 
+ * The StompPrincipal object holds an id, name, and room number.
+ * The id is returned from the {@code .getName()} function that Spring
+ * expects for identifying the principal, such as the {@code .convertAndSendToUser} 
+ * method.
+ * 
+ * Within the game and server, however, we use {@code id} as an id, and {@code name} as the user-chosen name.
+ * To eliminate confusion, use the {@code .getPlayerId} and {@code .getPlayerName} methods.
+ */
 
 @Data
 public class StompPrincipal implements Principal {
 
   private final String id;
+  private final String DEFAULTNAME;
   private String name;
   private int roomNumber;
 
-  // public StompPrincipal(String id, String name) {
-  //   super(id, name);
-  // }
-
-  public StompPrincipal(String id, String name) {
+  public StompPrincipal(String id) {
     this.id = id;
-    this.name = name;
+    this.DEFAULTNAME = "Player#" + id.substring(0, 5).toUpperCase();
+    this.name = this.DEFAULTNAME;
     this.roomNumber = -1;
   }
 
   public static StompPrincipal fromId(String id) {
-    return new StompPrincipal(id, "Player#" + id.substring(0, 5).toUpperCase());
+    return new StompPrincipal(id);
   }
 
   @Override
@@ -30,36 +39,32 @@ public class StompPrincipal implements Principal {
     return id;
   }
 
+  public String getPlayerName() {
+    return name;
+  }
+
   public void setPlayerName(String name) {
-    this.name = name;
+    if (name == null || name.length() == 0) {
+      this.name = this.DEFAULTNAME;
+    } else {
+      this.name = name.substring(0, Math.min(Constants.MAXNAMELENGTH, name.length()));
+    }
   }
 
   public String getPlayerId() {
     return id;
   }
 
-  public String getPlayerName() {
-    return name;
-  }
-
   public boolean isInRoom() {
     return roomNumber >= 1000;
   }
 
+  public void removeRoomNumber() {
+    this.roomNumber = -1;
+  }
+
   @Override
   public String toString() {
-    return "Stomp Principal (id=" + id + ", name=" + name + ")";
+    return "Stomp Principal (id=" + id + ", name=" + name + ", roomNumber=" + roomNumber + ")";
   }
-  // String name;
-  // String playerId;
-
-  // public StompPrincipal(String playerId) {
-  //   this.name = "Player#" + playerId.substring(0, 5);
-  //   this.playerId = playerId;
-  // }
-
-  // @Override
-  // public String getName() {
-  //   return userId;
-  // }
 }
