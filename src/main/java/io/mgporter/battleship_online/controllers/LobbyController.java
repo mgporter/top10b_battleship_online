@@ -44,6 +44,11 @@ public class LobbyController {
     this.messagingTemplate = messagingTemplate;
   }
 
+  @GetMapping("/helloMessageTest")
+  public String sendTestMessage() {
+    return "MGPorter's web server is working!";
+  }
+
   /**
    * Return a list of all the gamerooms currently active. The GameState associated with
    * the gameroom is not returned in order to save bandwidth.

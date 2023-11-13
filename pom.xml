@@ -10,9 +10,10 @@
 	</parent>
 	<groupId>io.mgporter</groupId>
 	<artifactId>battleship_online</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>battleship_online</name>
-	<description>Pvp version of Battleship app</description>
+	<description>PvP version of Battleship</description>
+	<packaging>war</packaging>
 	<properties>
 		<java.version>17</java.version>
 	</properties>
@@ -58,6 +59,10 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>3.4.0</version>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
