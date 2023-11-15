@@ -107,8 +107,7 @@ public class GameController {
    * After both players complete their ship placements, they send a packet to the server to
    * instruct it to load the GameState from the database into their own GameState. This way,
    * both players have access to their opponent's ship placements (though they are unable to
-   * access this client-side). The method also instructs player one to make the first move by
-   * sending a "GOFIRST" message.
+   * access this client-side).
    * 
    * @param principal
     */
@@ -130,16 +129,8 @@ public class GameController {
     GamePacket startAttackPhasePacket = new GamePacket();
     startAttackPhasePacket.type = PacketType.GAME_ATTACK_PHASE_START;
     messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), startAttackPhasePacket);
-
-    if (principal.getPlayerId().equals(gameService.getPlayerOneId())) {
-      sendGoFirstPacket(principal);
-    }
   }
 
-  private void sendGoFirstPacket(StompPrincipal principal) {
-    Message goFirstMessage = Message.fromType(MessageType.GOFIRST);
-    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/player", goFirstMessage);
-  }
 
 
   /**

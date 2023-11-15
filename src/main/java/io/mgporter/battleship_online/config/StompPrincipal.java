@@ -25,7 +25,7 @@ public class StompPrincipal implements Principal {
 
   public StompPrincipal(String id) {
     this.id = id;
-    this.DEFAULTNAME = "Player#" + id.substring(0, 5).toUpperCase();
+    this.DEFAULTNAME = "Player-" + id.substring(0, 5).toUpperCase();
     this.name = this.DEFAULTNAME;
     this.roomNumber = -1;
   }
@@ -44,7 +44,7 @@ public class StompPrincipal implements Principal {
   }
 
   public void setPlayerName(String name) {
-    if (name == null || name.length() == 0) {
+    if (name.equals("null") || name == null || name.length() == 0) {
       this.name = this.DEFAULTNAME;
     } else {
       this.name = name.substring(0, Math.min(Constants.MAXNAMELENGTH, name.length()));

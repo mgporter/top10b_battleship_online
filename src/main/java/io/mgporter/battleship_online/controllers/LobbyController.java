@@ -101,7 +101,7 @@ public class LobbyController {
    * @param principal
     */
 
-  public void addUserToLobby(@Payload String username, StompPrincipal principal) {
+  public void addUserToLobby(String username, StompPrincipal principal) {
     
     principal.setPlayerName(username);
 
