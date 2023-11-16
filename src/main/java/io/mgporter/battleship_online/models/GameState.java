@@ -20,8 +20,8 @@ public class GameState {
   private String playerTwoId;
   public List<Ship> playerOneShipList;
   public List<Ship> playerTwoShipList;
-  public List<Coordinate> playerOnesAttacks;
-  public List<Coordinate> playerTwosAttacks;
+  public List<CoordinateAttack> playerOnesAttacks;
+  public List<CoordinateAttack> playerTwosAttacks;
 
   public GameState() {
     this.playerOneShipList = new ArrayList<>(Constants.MAXSHIPS);
@@ -33,8 +33,13 @@ public class GameState {
   }
 
   public boolean isPlayerOne(String id) {
-    if (playerOneId.equals(id)) return true;
-    else return false;
+    if (playerOneId == null) return false;
+    return playerOneId.equals(id);
+  }
+
+  public boolean isPlayerTwo(String id) {
+    if (playerTwoId == null) return false;
+    return playerTwoId.equals(id);
   }
 
   public boolean bothPlayersReady() {
@@ -43,6 +48,18 @@ public class GameState {
 
   public boolean allPlacementsComplete() {
     return playerOneShipList.size() == Constants.MAXSHIPS && playerTwoShipList.size() == Constants.MAXSHIPS;
+  }
+
+  /**
+   * @param id
+   * @return true if the playerId has completed their ship placements, otherwise false. Also
+   * returns false if the id is not playerOne or playerTwo.
+    */
+
+  public boolean myPlacementsComplete(String id) {
+    if (isPlayerOne(id)) return playerOneShipList.size() == Constants.MAXSHIPS;
+    if (isPlayerTwo(id)) return playerTwoShipList.size() == Constants.MAXSHIPS;
+    else return false;
   }
 
   /**

@@ -13,27 +13,27 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Message {
   private Player sender;
-  private MessageType messageType;
+  private MessageType type;
   private int roomNumber;
   private List<Player> playerList;
 
   public static Message fromType(MessageType type) {
     Message message = new Message();
-    message.setMessageType(type);
+    message.setType(type);
     return message;
   }
 
   public static Message fromSenderAndType(Player player, MessageType type) {
     Message message = new Message();
     message.setSender(player);
-    message.setMessageType(type);
+    message.setType(type);
     return message;
   }
 
   public static Message fromSenderTypeRoomnumber(Player player, MessageType type, int roomNumber) {
     Message message = new Message();
     message.setSender(player);
-    message.setMessageType(type);
+    message.setType(type);
     message.setRoomNumber(roomNumber);
     return message;
   }
@@ -41,7 +41,7 @@ public class Message {
   public static Message fromPrincipalAndType(StompPrincipal principal, MessageType type) {
     Message message = new Message();
     message.setSender(new Player(principal.getPlayerId(), principal.getPlayerName()));
-    message.setMessageType(type);
+    message.setType(type);
     if (principal.isInRoom()) message.setRoomNumber(principal.getRoomNumber());
     return message;
   }

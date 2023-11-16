@@ -12,8 +12,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
   @Override
   public void registerStompEndpoints(StompEndpointRegistry registry) {
-    registry.addEndpoint("/ws").setHandshakeHandler(new CustomHandshakeHandler()).setAllowedOrigins("http://localhost:3000");
-    registry.addEndpoint("/ws").setHandshakeHandler(new CustomHandshakeHandler()).setAllowedOrigins("http://localhost:3000").withSockJS();
+    registry.addEndpoint("/ws").setHandshakeHandler(new CustomHandshakeHandler()).setAllowedOrigins("http://localhost:3000", "https://mgporter.github.io");
+    registry.addEndpoint("/ws").setHandshakeHandler(new CustomHandshakeHandler()).setAllowedOrigins("http://localhost:3000", "https://mgporter.github.io").withSockJS();
   }
 
   @Override

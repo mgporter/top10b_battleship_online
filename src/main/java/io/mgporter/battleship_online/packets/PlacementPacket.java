@@ -7,7 +7,7 @@ import io.mgporter.battleship_online.models.Ship;
 
 public class PlacementPacket {
   public String playerId;
-  public int roomNumber;
   public PacketType type;
+  public byte shipsPlacedCount;
   public List<Ship> placementList;
 }

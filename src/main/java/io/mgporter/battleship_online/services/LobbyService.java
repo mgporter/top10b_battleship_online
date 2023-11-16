@@ -8,10 +8,12 @@ import java.util.stream.Collectors;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import io.mgporter.battleship_online.config.StompPrincipal;
 import io.mgporter.battleship_online.models.GameRoom;
+import io.mgporter.battleship_online.models.GameState;
 import io.mgporter.battleship_online.models.Player;
 import io.mgporter.battleship_online.repositories.GameRoomRepository;
 
@@ -145,6 +147,15 @@ public class LobbyService {
       Query.query(
         Criteria.where("roomNumber").is(roomNumber)
       ), GameRoom.class);
+  }
+
+  public void updateGameState(GameState gameState, int roomNumber) {
+
+    mongoTemplate.update(GameRoom.class)
+      .matching(Criteria.where("roomNumber").is(roomNumber))
+      .apply(new Update().set("gameState", gameState))
+      .first();
+
   }
 
 }

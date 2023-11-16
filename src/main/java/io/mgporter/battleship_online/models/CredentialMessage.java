@@ -7,5 +7,5 @@ import lombok.AllArgsConstructor;
 public class CredentialMessage {
   public String name;
   public String id;
-  public MessageType messageType;
+  public MessageType type;
 }

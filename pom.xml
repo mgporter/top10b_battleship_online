@@ -10,10 +10,10 @@
 	</parent>
 	<groupId>io.mgporter</groupId>
 	<artifactId>battleship_online</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<name>battleship_online</name>
 	<description>PvP version of Battleship</description>
-	<packaging>war</packaging>
+	<packaging>jar</packaging>
 	<properties>
 		<java.version>17</java.version>
 	</properties>
@@ -75,6 +75,29 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<!-- <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>prepare</id>
+						<phase>package</phase>
+						<configuration>
+							<target>
+								<unzip src="${project.build.directory}/${project.build.finalName}.jar" dest="${project.build.directory}/${project.build.finalName}" />
+									<copy todir="${project.build.directory}/${project.build.finalName}/" overwrite="false">
+											<fileset dir="./" includes=".ebextensions/**"/>
+									</copy>
+									<zip compress="false" destfile="${project.build.directory}/${project.build.finalName}.jar" basedir="${project.build.directory}/${project.build.finalName}"/>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin> -->
 		</plugins>
 	</build>
 

@@ -6,16 +6,15 @@ import java.util.Optional;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
-import org.springframework.web.context.annotation.SessionScope;
 
+import io.mgporter.battleship_online.enums.PacketType;
 import io.mgporter.battleship_online.models.Coordinate;
+import io.mgporter.battleship_online.models.CoordinateAttack;
+import io.mgporter.battleship_online.models.GameRoom;
 import io.mgporter.battleship_online.models.GameState;
 import io.mgporter.battleship_online.models.Gameboard;
-import io.mgporter.battleship_online.models.Player;
 import io.mgporter.battleship_online.models.Ship;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * This service provides functions to modify the game state that each player can see. 
@@ -47,12 +46,41 @@ public class GameService {
   public Optional<Ship> attackBy(String playerId, Coordinate coordinates) {
     boolean isPlayerOne = gameState.isPlayerOne(playerId);
     if (isPlayerOne) {
-      gameState.playerOnesAttacks.add(coordinates);
+      // gameState.playerOnesAttacks.add(coordinates);
       return playerTwoGameboard.receiveAttack(coordinates);
     } else {
-      gameState.playerTwosAttacks.add(coordinates);
+      // gameState.playerTwosAttacks.add(coordinates);
       return playerOneGameboard.receiveAttack(coordinates);
     }
+  }
+
+  public GameRoom update(GameRoom gameRoom, String id) {
+
+    GameState gameStateFromRoom = gameRoom.getGameState();
+
+    boolean isPlayerOne = gameState.isPlayerOne(id);
+    boolean isPlayerTwo = gameState.isPlayerTwo(id);
+
+    System.out.println(isPlayerOne);
+    System.out.println(isPlayerTwo);
+
+    if (isPlayerOne)
+      gameStateFromRoom.setPlayerOnesAttacks(gameState.getPlayerOnesAttacks());
+    else if (isPlayerTwo)
+      gameStateFromRoom.setPlayerTwosAttacks((gameState.getPlayerTwosAttacks()));
+
+    gameState = gameStateFromRoom;
+
+    System.out.println(gameStateFromRoom);
+    System.out.println(gameRoom);
+    return gameRoom;
+  }
+
+  public void resetGameState(GameState gameState) {
+    this.gameState = gameState;
+    this.playerOneGameboard = new Gameboard();
+    this.playerTwoGameboard = new Gameboard();
+    // loadDataToBoard(gameState);
   }
 
   public boolean allPlacementsComplete() {
@@ -80,7 +108,7 @@ public class GameService {
   }
 
   public void loadDataToBoard(GameState gameState) {
-    this.gameState = gameState;
+    resetGameState(gameState);
 
     for (Ship ship : gameState.playerOneShipList) {
       playerOneGameboard.placeShip(ship);
@@ -91,13 +119,55 @@ public class GameService {
     }
 
     for (Coordinate c : gameState.playerOnesAttacks) {
-      playerOneGameboard.receiveAttack(c);
+      playerTwoGameboard.receiveAttack(c);
     }
 
     for (Coordinate c : gameState.playerTwosAttacks) {
-      playerTwoGameboard.receiveAttack(c);
+      playerOneGameboard.receiveAttack(c);
     }
   }
+
+  public void addAttackResult(String id, byte row, byte col, PacketType result) {
+    boolean isPlayerOne = gameState.isPlayerOne(id);
+    if (isPlayerOne) gameState.playerOnesAttacks.add(new CoordinateAttack(row, col, result));
+    else gameState.playerTwosAttacks.add(new CoordinateAttack(row, col, result));
+  }
+
+  public List<Ship> getPlayerOnesShips() {
+    return playerOneGameboard.getShips();
+  }
+
+  public List<Ship> getPlayerTwosShips() {
+    return playerTwoGameboard.getShips();
+  }
+
+  public List<Ship> getPlayerOnesSunkShips() {
+    return playerOneGameboard.getSunkShips();
+  }
+
+  public List<Ship> getPlayerTwosSunkShips() {
+    return playerTwoGameboard.getSunkShips();
+  }
+
+  public List<CoordinateAttack> getPlayerOnesAttackResults() {
+    return gameState.getPlayerOnesAttacks();
+  }
+
+  public List<CoordinateAttack> getPlayerTwosAttackResults() {
+    return gameState.getPlayerTwosAttacks();
+  }
+
+  // public boolean opponentPlacementComplete(String id) {
+  //   Gameboard gameboard = getMyOpponentsBoard(id);
+  //   if (gameboard.allPlaced()) return true;
+  //   else return false;
+  // }
+
+  // public boolean myPlacementComplete(String id) {
+  //   Gameboard gameboard = getBoardById(id);
+  //   if (gameboard.allPlaced()) return true;
+  //   else return false;
+  // }
 
   public boolean opponentAllSunk(String id) {
     Gameboard gb = getMyOpponentsBoard(id);

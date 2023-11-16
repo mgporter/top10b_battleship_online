@@ -46,7 +46,7 @@ public class LobbyController {
 
   @GetMapping("/helloMessageTest")
   public String sendTestMessage() {
-    return "MGPorter's web server is working!";
+    return "MGPorter's web server is working! Updated origins";
   }
 
   /**

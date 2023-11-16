@@ -2,6 +2,7 @@ package io.mgporter.battleship_online.models;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.ArrayList;
 
 import org.springframework.stereotype.Component;
@@ -87,7 +88,13 @@ public class Gameboard {
       if (s.isSunk()) sunkShips++;
     });
 
+    System.out.println(getSunkShips());
+
     return ship;
+  }
+
+  public List<Ship> getSunkShips() {
+    return ships.stream().filter(ship -> ship.isSunk()).collect(Collectors.toList());
   }
 
   public boolean allPlaced() {

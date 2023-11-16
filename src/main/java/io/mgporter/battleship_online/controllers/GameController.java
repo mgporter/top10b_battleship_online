@@ -13,10 +13,12 @@ import io.mgporter.battleship_online.enums.MessageType;
 import io.mgporter.battleship_online.enums.PacketType;
 import io.mgporter.battleship_online.models.Coordinate;
 import io.mgporter.battleship_online.models.GameRoom;
+import io.mgporter.battleship_online.models.GameState;
 import io.mgporter.battleship_online.models.Message;
 import io.mgporter.battleship_online.models.Ship;
 import io.mgporter.battleship_online.packets.AttackPacket;
 import io.mgporter.battleship_online.packets.GamePacket;
+import io.mgporter.battleship_online.packets.LoadGamePacket;
 import io.mgporter.battleship_online.packets.PlacementPacket;
 import io.mgporter.battleship_online.packets.PlayerListPacket;
 import io.mgporter.battleship_online.services.GameService;
@@ -124,12 +126,40 @@ public class GameController {
 
     GameRoom gameRoom = gameRoomOptional.get();
 
+    // System.out.println(gameRoom.getGameState().playerOnesAttacks);
+    // System.out.println(gameRoom.getGameState().playerTwosAttacks);
+
     gameService.loadDataToBoard(gameRoom.getGameState());
 
     GamePacket startAttackPhasePacket = new GamePacket();
     startAttackPhasePacket.type = PacketType.GAME_ATTACK_PHASE_START;
     messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), startAttackPhasePacket);
   }
+
+  public void loadInProgressGameData(StompPrincipal principal, GameRoom gameRoom) {
+    gameService.loadDataToBoard(gameRoom.getGameState());
+
+    LoadGamePacket loadGamePacket = new LoadGamePacket();
+
+    if (gameService.getPlayerOneId().equals(principal.getPlayerId())) {
+      loadGamePacket.setMyShips(gameService.getPlayerOnesShips());
+      loadGamePacket.setOpponentSunkShips(gameService.getPlayerTwosSunkShips());
+      loadGamePacket.setMyAttacks(gameService.getPlayerOnesAttackResults());
+      loadGamePacket.setOpponentAttacks(gameService.getPlayerTwosAttackResults());
+    } else {
+      loadGamePacket.setMyShips(gameService.getPlayerTwosShips());
+      loadGamePacket.setOpponentSunkShips(gameService.getPlayerOnesSunkShips());
+      loadGamePacket.setMyAttacks(gameService.getPlayerTwosAttackResults());
+      loadGamePacket.setOpponentAttacks(gameService.getPlayerOnesAttackResults());
+    }
+
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/player", loadGamePacket);
+
+  }
+
+  // public void saveGameData(StompPrincipal principal) {
+  //   lobbyService.updateGameState(gameService.getGameState(), principal.getRoomNumber());
+  // }
 
 
 
@@ -155,9 +185,11 @@ public class GameController {
     if (!ship.isSunk()) {
       packet.result = PacketType.ATTACK_HITSHIP;
       messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), packet);
+      gameService.addAttackResult(principal.getPlayerId(), packet.row, packet.col, PacketType.H);
 
     } else {
       packet.result = PacketType.ATTACK_SUNKSHIP;
+      gameService.addAttackResult(principal.getPlayerId(), packet.row, packet.col, PacketType.S);
 
       // Add information about the sunk ship, 
       // so that the client can display it on the opponent board
@@ -189,6 +221,8 @@ public class GameController {
     packet.result = PacketType.ATTACK_MISSED;
     packet.playerId = principal.getPlayerId();
     messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), packet);
+
+    gameService.addAttackResult(principal.getPlayerId(), packet.row, packet.col, PacketType.M);
   }
 
   /**
@@ -206,7 +240,6 @@ public class GameController {
     Optional<GameRoom> gameRoomOptional = lobbyService.leaveGameRoom(principal);
 
     if (!gameRoomOptional.isPresent()) {
-      sendErrorMessage(principal, MessageType.REJECTEDJOIN_GAME_NOT_FOUND);
       return false;
     }
 
@@ -216,10 +249,31 @@ public class GameController {
       lobbyService.deleteGameRoom(gameRoom.getRoomNumber());
       return true;
     } else {
+      // Update the gameState (which includes any attacks that have occurred since the last save)
+      saveGameState(principal, gameRoom);
       broadcastUpdatedPlayerList(gameRoom);
       return false;
     }
+  }
 
+  @MessageMapping("/game/saveState")
+  public void saveGameState(StompPrincipal principal) {
+    Optional<GameRoom> gameRoomOptional = lobbyService.getRoomById(principal.getRoomNumber());
+    if (!gameRoomOptional.isPresent()) {
+      return;
+    }
+    GameRoom gameRoom = gameRoomOptional.get();
+
+    saveGameState(principal, gameRoom);
+  }
+
+  public void saveGameState(StompPrincipal principal, GameRoom gameRoom) {
+
+    // System.out.println(gameService.getGameState().getPlayerOnesAttacks());
+    // System.out.println(gameService.getGameState().getPlayerTwosAttacks());
+
+    gameService.update(gameRoom, principal.getPlayerId());
+    lobbyService.saveGameRoom(gameRoom);
   }
 
   /**
@@ -238,12 +292,21 @@ public class GameController {
     if (gameRoomOptional.isEmpty()) return;
     GameRoom gameRoom = gameRoomOptional.get();
 
-    gameService.setGameState(gameRoom.getGameState());
- 
+    gameService.resetGameState(gameRoom.getGameState());
+
     broadcastUpdatedPlayerList(gameRoom);
 
-    if (gameRoom.getGameState().bothPlayersReady()) {
+    // There are at least two players in the room
+    if (!gameRoom.getGameState().bothPlayersReady()) return;
+    
+    // If the incoming player has not placed ships yet, send them the Game Start packet.
+    // If they have placed ships (i.e., they are taking over for a player that left after
+    // placing ships), then load the game data.
+
+    if (!gameRoom.getGameState().myPlacementsComplete(principal.getPlayerId())) {
       sendGameStartPacket(principal.getRoomNumber());
+    } else {
+      loadInProgressGameData(principal, gameRoom);
     }
   }
 
