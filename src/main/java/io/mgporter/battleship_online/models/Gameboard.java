@@ -68,6 +68,12 @@ public class Gameboard {
       cell.addShip(ship, (byte) (i+1));
     }
 
+
+    /* If we are loading a gameState from an already started game, a ship 
+     * added to the board might already be sunk when we add it. 
+     */
+    if (ship.isSunk()) sunkShips++;
+
     addShipToList(ship);
   }
 
@@ -87,8 +93,6 @@ public class Gameboard {
       s.receiveHit(cell);
       if (s.isSunk()) sunkShips++;
     });
-
-    System.out.println(getSunkShips());
 
     return ship;
   }

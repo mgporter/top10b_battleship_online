@@ -61,9 +61,6 @@ public class GameService {
     boolean isPlayerOne = gameState.isPlayerOne(id);
     boolean isPlayerTwo = gameState.isPlayerTwo(id);
 
-    System.out.println(isPlayerOne);
-    System.out.println(isPlayerTwo);
-
     if (isPlayerOne)
       gameStateFromRoom.setPlayerOnesAttacks(gameState.getPlayerOnesAttacks());
     else if (isPlayerTwo)
@@ -71,8 +68,6 @@ public class GameService {
 
     gameState = gameStateFromRoom;
 
-    System.out.println(gameStateFromRoom);
-    System.out.println(gameRoom);
     return gameRoom;
   }
 
@@ -80,7 +75,6 @@ public class GameService {
     this.gameState = gameState;
     this.playerOneGameboard = new Gameboard();
     this.playerTwoGameboard = new Gameboard();
-    // loadDataToBoard(gameState);
   }
 
   public boolean allPlacementsComplete() {
@@ -156,18 +150,6 @@ public class GameService {
   public List<CoordinateAttack> getPlayerTwosAttackResults() {
     return gameState.getPlayerTwosAttacks();
   }
-
-  // public boolean opponentPlacementComplete(String id) {
-  //   Gameboard gameboard = getMyOpponentsBoard(id);
-  //   if (gameboard.allPlaced()) return true;
-  //   else return false;
-  // }
-
-  // public boolean myPlacementComplete(String id) {
-  //   Gameboard gameboard = getBoardById(id);
-  //   if (gameboard.allPlaced()) return true;
-  //   else return false;
-  // }
 
   public boolean opponentAllSunk(String id) {
     Gameboard gb = getMyOpponentsBoard(id);
