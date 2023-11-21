@@ -11,6 +11,7 @@ import lombok.Data;
 public class LoadGamePacket {
   public PacketType type = PacketType.LOAD_ALL_DATA;
   public boolean goFirst;
+  public boolean opponentHasPlaced;
   public List<Ship> myShips;
   public List<Ship> opponentSunkShips;
   public List<CoordinateAttack> myAttacks;

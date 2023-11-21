@@ -7,11 +7,16 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+import org.springframework.web.socket.messaging.SessionSubscribeEvent;
+import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 
 import io.mgporter.battleship_online.config.StompPrincipal;
 import io.mgporter.battleship_online.enums.MessageType;
+import io.mgporter.battleship_online.models.CredentialMessage;
 import io.mgporter.battleship_online.models.Message;
+import io.mgporter.battleship_online.models.Player;
 import io.mgporter.battleship_online.services.LobbyService;
 
 
@@ -41,6 +46,19 @@ public class JoinListener {
     this.lobbyController = lobbyController;
   }
 
+
+  @MessageMapping("/getCredentials")
+  public void handleGetCredentials(@Payload String username, StompPrincipal principal) {
+
+    principal.setPlayerName(username);
+
+    CredentialMessage credentialsMessage = 
+      new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/lobby", credentialsMessage);
+
+    lobbyController.addUserToLobby(principal);
+  }
+
   
   /**
    * Passes a joinLobby message on to the LobbyController. If the player is joining
@@ -50,15 +68,16 @@ public class JoinListener {
     */
 
   @MessageMapping("/joinLobby")
-  public void handleJoinLobby(@Payload String username, StompPrincipal principal) {
+  public void handleJoinLobby(@Payload StompPrincipal principal) {
     
-    /* If the player is joining the lobby after coming from a gameroom, we need to remove them from the gameroom */
+    /* If the player is joining the lobby after coming from a 
+    gameroom, we need to remove them from the gameroom first */
     if (principal.isInRoom()) {
-      handlePlayerLeavingGameroom(principal);
+      int roomNumber = principal.removeRoomNumber();
+      handlePlayerLeavingGameroom(principal, roomNumber);
     }
 
-    lobbyController.addUserToLobby(username, principal);
-
+    lobbyController.addUserToLobby(principal);
   }
 
 
@@ -109,7 +128,7 @@ public class JoinListener {
     principal.setRoomNumber(roomNumber);
 
     Message acceptedMessage = Message.fromPrincipalAndType(principal, MessageType.ACCEPTEDJOIN);
-    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/player", acceptedMessage);
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/lobby", acceptedMessage);
   }
 
   /**
@@ -125,7 +144,7 @@ public class JoinListener {
     */
 
   @MessageMapping("/gameloaded")
-  public void handleSubscriptionEvent(StompPrincipal principal) {
+  public void handleClientGameLoaded(StompPrincipal principal) {
 
     if (!principal.isInRoom()) return; 
 
@@ -133,6 +152,20 @@ public class JoinListener {
 
     Message outMessage = Message.fromPrincipalAndType(principal, MessageType.JOINGAME);
     messagingTemplate.convertAndSend("/lobby", outMessage);
+  }
+
+
+  @EventListener
+  public void playerConnected(SessionSubscribeEvent event) {
+    StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+    StompPrincipal principal = (StompPrincipal) headerAccessor.getUser();
+    String destination = headerAccessor.getDestination();
+    
+    if (destination.equals("/user/queue/credentials")) {
+      CredentialMessage credentialsMessage = 
+        new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
+      messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/credentials", credentialsMessage);
+    }
   }
 
   /**
@@ -148,7 +181,8 @@ public class JoinListener {
     StompPrincipal principal = (StompPrincipal) headerAccessor.getUser();
 
     if (principal.isInRoom()) {
-      handlePlayerLeavingGameroom(principal);
+      int roomNumber = principal.removeRoomNumber();
+      handlePlayerLeavingGameroom(principal, roomNumber);
     } else {
       lobbyController.handlePlayerLeavingLobby(principal);
     }
@@ -162,17 +196,18 @@ public class JoinListener {
    * @param principal
     */
 
-  private void handlePlayerLeavingGameroom(StompPrincipal principal) {
-    boolean wasGameRemoved = gameController.handleLeaveGame(principal);
+  private void handlePlayerLeavingGameroom(StompPrincipal principal, int roomNumber) {
+    boolean wasGameRemoved = gameController.handleLeaveGame(principal, roomNumber);
     Message disconnectMessage = Message.fromPrincipalAndType(principal, MessageType.EXITEDGAME);
     messagingTemplate.convertAndSend("/lobby", disconnectMessage);
 
     if (wasGameRemoved) {
-      Message gameRemovedMessage = Message.fromPrincipalAndType(principal, MessageType.GAMEREMOVED);
+      Message gameRemovedMessage = new Message();
+      gameRemovedMessage.setSender(Player.fromPrincipal(principal));
+      gameRemovedMessage.setRoomNumber(roomNumber);
+      gameRemovedMessage.setType(MessageType.GAMEREMOVED);
       messagingTemplate.convertAndSend("/lobby", gameRemovedMessage);
     }
-
-    principal.removeRoomNumber();
   }
 
 }

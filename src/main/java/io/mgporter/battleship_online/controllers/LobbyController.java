@@ -22,6 +22,7 @@ import io.mgporter.battleship_online.models.CredentialMessage;
 import io.mgporter.battleship_online.models.GameRoom;
 import io.mgporter.battleship_online.models.Message;
 import io.mgporter.battleship_online.models.Player;
+import io.mgporter.battleship_online.packets.GameRoomList;
 import io.mgporter.battleship_online.services.LobbyService;
 
 
@@ -101,18 +102,15 @@ public class LobbyController {
    * @param principal
     */
 
-  public void addUserToLobby(String username, StompPrincipal principal) {
-    
-    principal.setPlayerName(username);
+  public void addUserToLobby(StompPrincipal principal) {
 
     Player player = new Player(principal.getId(), principal.getPlayerName());
     Message joinLobbyMessage = Message.fromSenderAndType(player, MessageType.JOINLOBBY);
     messagingTemplate.convertAndSend("/lobby", joinLobbyMessage);
 
-    CredentialMessage credentialsMessage = 
-      new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
-    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/player", credentialsMessage);
+    GameRoomList gameRoomList = new GameRoomList(MessageType.GAMEROOMLIST, lobbyService.getAllRooms());
 
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/lobby", gameRoomList);
   }
 
   

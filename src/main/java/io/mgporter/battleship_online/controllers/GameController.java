@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.mgporter.battleship_online.config.StompPrincipal;
 import io.mgporter.battleship_online.enums.MessageType;
 import io.mgporter.battleship_online.enums.PacketType;
+import io.mgporter.battleship_online.models.Constants;
 import io.mgporter.battleship_online.models.Coordinate;
 import io.mgporter.battleship_online.models.GameRoom;
 import io.mgporter.battleship_online.models.Message;
@@ -48,7 +49,7 @@ public class GameController {
 
   private void sendErrorMessage(StompPrincipal principal, MessageType type) {
     Message errorMessage = Message.fromPrincipalAndType(principal, type);
-    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/player", errorMessage);
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/game", errorMessage);
   }
 
 
@@ -64,7 +65,7 @@ public class GameController {
   @MessageMapping("/game/placeShip")
   public void playerPlacedShip(@Payload PlacementPacket packet, StompPrincipal principal) {
     packet.playerId = principal.getPlayerId();
-    messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), packet);
+    messagingTemplate.convertAndSend("/game/public/" + principal.getRoomNumber(), packet);
   }
 
 
@@ -101,7 +102,7 @@ public class GameController {
 
   private void sendPlacedCompletedPacket(int roomNumber) {
     GamePacket placedCompletePacket = new GamePacket(PacketType.PLACED_COMPLETE);
-    messagingTemplate.convertAndSend("/game/" + roomNumber, placedCompletePacket);
+    messagingTemplate.convertAndSend("/game/public/" + roomNumber, placedCompletePacket);
   }
 
   /**
@@ -129,7 +130,7 @@ public class GameController {
 
     GamePacket startAttackPhasePacket = new GamePacket();
     startAttackPhasePacket.type = PacketType.GAME_ATTACK_PHASE_START;
-    messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), startAttackPhasePacket);
+    messagingTemplate.convertAndSend("/game/public/" + principal.getRoomNumber(), startAttackPhasePacket);
   }
 
 
@@ -158,15 +159,19 @@ public class GameController {
       loadGamePacket.setMyAttacks(gameService.getPlayerOnesAttackResults());
       loadGamePacket.setOpponentAttacks(gameService.getPlayerTwosAttackResults());
       loadGamePacket.setGoFirst(playerOneGoesFirst);
+      loadGamePacket.setOpponentHasPlaced(gameService.getPlayerTwosShips().size() == Constants.MAXSHIPS);
+
     } else {
       loadGamePacket.setMyShips(gameService.getPlayerTwosShips());
       loadGamePacket.setOpponentSunkShips(gameService.getPlayerOnesSunkShips());
       loadGamePacket.setMyAttacks(gameService.getPlayerTwosAttackResults());
       loadGamePacket.setOpponentAttacks(gameService.getPlayerOnesAttackResults());
       loadGamePacket.setGoFirst(!playerOneGoesFirst);
-    }
+      loadGamePacket.setOpponentHasPlaced(gameService.getPlayerOnesShips().size() == Constants.MAXSHIPS);
 
-    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/player", loadGamePacket);
+    }
+    
+    messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/game", loadGamePacket);
 
   }
 
@@ -194,7 +199,7 @@ public class GameController {
     
     if (!ship.isSunk()) {
       packet.result = PacketType.ATTACK_HITSHIP;
-      messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), packet);
+      messagingTemplate.convertAndSend("/game/public/" + principal.getRoomNumber(), packet);
       gameService.addAttackResult(principal.getPlayerId(), packet.row, packet.col, PacketType.H);
 
     } else {
@@ -208,7 +213,7 @@ public class GameController {
       packet.startingCol = startingCoordinate.getCol();
       packet.direction = ship.getDirection();
 
-      messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), packet);
+      messagingTemplate.convertAndSend("/game/public/" + principal.getRoomNumber(), packet);
 
       if (gameService.opponentAllSunk(packet.playerId)) {
         sendAllSunkPacket(principal);
@@ -224,13 +229,13 @@ public class GameController {
     AttackPacket allSunkPacket = new AttackPacket();
     allSunkPacket.playerId = principal.getPlayerId();   
     allSunkPacket.type = PacketType.ATTACK_ALLSUNK;
-    messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), allSunkPacket);
+    messagingTemplate.convertAndSend("/game/public/" + principal.getRoomNumber(), allSunkPacket);
   }
 
   private void handleMiss(StompPrincipal principal, AttackPacket packet) {
     packet.result = PacketType.ATTACK_MISSED;
     packet.playerId = principal.getPlayerId();
-    messagingTemplate.convertAndSend("/game/" + principal.getRoomNumber(), packet);
+    messagingTemplate.convertAndSend("/game/public/" + principal.getRoomNumber(), packet);
 
     gameService.addAttackResult(principal.getPlayerId(), packet.row, packet.col, PacketType.M);
   }
@@ -244,10 +249,10 @@ public class GameController {
    * @return {@code true} if the room was deleted as a result of the player leaving.
     */
 
-  public boolean handleLeaveGame(StompPrincipal principal) {
+  public boolean handleLeaveGame(StompPrincipal principal, int roomNumber) {
 
     // Remove the player from the game room, and get a reference to the gameroom back
-    Optional<GameRoom> gameRoomOptional = lobbyService.leaveGameRoom(principal);
+    Optional<GameRoom> gameRoomOptional = lobbyService.leaveGameRoom(principal, roomNumber);
 
     if (!gameRoomOptional.isPresent()) {
       return false;
@@ -324,7 +329,7 @@ public class GameController {
     */
 
   private void sendGameStartPacket(int roomNumber) {
-    messagingTemplate.convertAndSend("/game/" + roomNumber, new GamePacket(PacketType.GAME_START));
+    messagingTemplate.convertAndSend("/game/public/" + roomNumber, new GamePacket(PacketType.GAME_START));
   }
 
 
@@ -342,7 +347,7 @@ public class GameController {
       gameRoom.getGameState().getPlayerTwoId(),
       PacketType.PLAYERLIST_UPDATE
     );
-    messagingTemplate.convertAndSend("/game/" + gameRoom.getRoomNumber(), packet);
+    messagingTemplate.convertAndSend("/game/playerlist/" + gameRoom.getRoomNumber(), packet);
   }
 
 }

@@ -63,6 +63,12 @@ public class LobbyService {
       .collect(Collectors.toSet());
   }
 
+  public boolean doesExist(int roomNumber) {
+    return mongoTemplate.exists(
+      Query.query(Criteria.where("roomNumber").is(roomNumber)), 
+      GameRoom.class);
+  }
+
   public Optional<GameRoom> getRoomById(int number) {
     return Optional.ofNullable(
       mongoTemplate.findOne(
@@ -131,9 +137,9 @@ public class LobbyService {
     mongoTemplate.save(gameRoom, "GameRoom");
   }
 
-  public Optional<GameRoom> leaveGameRoom(StompPrincipal principal) {
-
-    Optional<GameRoom> gameRoom = getRoomById(principal.getRoomNumber());
+  public Optional<GameRoom> leaveGameRoom(StompPrincipal principal, int roomNumber) {
+    Optional<GameRoom> gameRoom = getRoomById(roomNumber);
+    System.out.println("GAME ROOM RETREIVED: " + gameRoom);
     gameRoom.ifPresent((g) -> {
       g.removePlayerFromGame(Player.fromPrincipal(principal));
       mongoTemplate.save(g, "GameRoom");
@@ -141,6 +147,10 @@ public class LobbyService {
       
     return gameRoom;
   }
+
+  // public Optional<GameRoom> leaveGameRoom(StompPrincipal principal) {
+  //   return leaveGameRoom(principal, principal.getRoomNumber());
+  // }
 
   public void deleteGameRoom(int roomNumber) {
     mongoTemplate.findAndRemove(

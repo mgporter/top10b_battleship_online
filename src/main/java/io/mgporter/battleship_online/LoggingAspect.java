@@ -12,17 +12,19 @@ import org.springframework.stereotype.Component;
 @Aspect
 @Component
 @EnableAspectJAutoProxy
-public class PlayerAspect {
+public class LoggingAspect {
 
-  private final Logger logger = Logger.getLogger(PlayerAspect.class.getName());
+  private final Logger logger = Logger.getLogger(LoggingAspect.class.getName());
 
-  @Around("execution(* io.mgporter.battleship_online.controllers..*.*(..))")
+  @Around("execution(* io.mgporter.battleship_online..*.*(..))")
   public Object loggingAspect(ProceedingJoinPoint joinPoint) throws Throwable {
 
+    String className = joinPoint.getTarget().getClass().getSimpleName();
     String methodName = joinPoint.getSignature().getName();
     Object[] arguments = joinPoint.getArgs();
 
-    logger.info(methodName + " called with arguments: " + Arrays.asList(arguments) + "\n");
+    // logger.info(className + "." + methodName + " called with arguments: " + Arrays.asList(arguments) + "\n");
+    System.out.println(className + "." + methodName + " called with arguments: " + Arrays.asList(arguments) + "\n");
 
     return joinPoint.proceed();
   }

@@ -17,12 +17,6 @@ public class Message {
   private int roomNumber;
   private List<Player> playerList;
 
-  public static Message fromType(MessageType type) {
-    Message message = new Message();
-    message.setType(type);
-    return message;
-  }
-
   public static Message fromSenderAndType(Player player, MessageType type) {
     Message message = new Message();
     message.setSender(player);

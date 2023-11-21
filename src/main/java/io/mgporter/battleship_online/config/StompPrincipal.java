@@ -1,6 +1,8 @@
 package io.mgporter.battleship_online.config;
 
 import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
 
 import io.mgporter.battleship_online.models.Constants;
 import lombok.Data;
@@ -21,13 +23,13 @@ public class StompPrincipal implements Principal {
   private final String id;
   private final String DEFAULTNAME;
   private String name;
-  private int roomNumber;
+  private int roomNumber = -1;
+  private boolean isInLobby = false;
 
   public StompPrincipal(String id) {
     this.id = id;
     this.DEFAULTNAME = "Player-" + id.substring(0, 5).toUpperCase();
     this.name = this.DEFAULTNAME;
-    this.roomNumber = -1;
   }
 
   public static StompPrincipal fromId(String id) {
@@ -59,8 +61,14 @@ public class StompPrincipal implements Principal {
     return roomNumber >= 1000;
   }
 
-  public void removeRoomNumber() {
+  public void joinLobby() {
     this.roomNumber = -1;
+  }
+
+  public int removeRoomNumber() {
+    int oldNumber = this.roomNumber;
+    this.roomNumber = -1;
+    return oldNumber;
   }
 
   @Override
