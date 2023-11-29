@@ -1,1 +1,1 @@
-web: java -jar target/battleship_online-1.0.4-SNAPSHOT.jar
+web: java -jar -Dserver.port=$PORT target/battleship_online-1.0.4-SNAPSHOT.jar
