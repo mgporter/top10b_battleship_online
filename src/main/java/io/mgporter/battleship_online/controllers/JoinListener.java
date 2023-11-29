@@ -7,10 +7,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
-import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 
 import io.mgporter.battleship_online.config.StompPrincipal;
 import io.mgporter.battleship_online.enums.MessageType;
@@ -139,7 +137,6 @@ public class JoinListener {
    * 
    * If we send out information to the game room too early (such as when the player
    * sends the /joingame message), then the player might miss it.
-   * This was the case with the PlayerList packet.
    * @param principal
     */
 
@@ -154,14 +151,30 @@ public class JoinListener {
     messagingTemplate.convertAndSend("/lobby", outMessage);
   }
 
+  /**
+   * When a player connects to the WebSockets session for the first time, we automatically
+   * send them a credentials packet with a UUID and default name generated from the server.
+   * Once the client receives this, they will finish the websocket connection. If the client has
+   * a previous name they are using, they will send a separate packet to change it on the
+   * server.
+   * 
+   * TO IMPLEMENT: in the future, we would like to do this in the HTTP or WebSocket handshake stage,
+   * and retrieve previous credentials using cookies.
+   * 
+   * @param event
+    */
 
   @EventListener
   public void playerConnected(SessionSubscribeEvent event) {
     StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
     StompPrincipal principal = (StompPrincipal) headerAccessor.getUser();
     String destination = headerAccessor.getDestination();
-    
+
+    System.out.println(destination);
+
     if (destination.equals("/user/queue/credentials")) {
+      System.out.println("Sending credentials message\n");
+
       CredentialMessage credentialsMessage = 
         new CredentialMessage(principal.getPlayerName(), principal.getPlayerId(), MessageType.CREDENTIALS);
       messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/credentials", credentialsMessage);
@@ -199,6 +212,7 @@ public class JoinListener {
   private void handlePlayerLeavingGameroom(StompPrincipal principal, int roomNumber) {
     boolean wasGameRemoved = gameController.handleLeaveGame(principal, roomNumber);
     Message disconnectMessage = Message.fromPrincipalAndType(principal, MessageType.EXITEDGAME);
+    disconnectMessage.setRoomNumber(roomNumber);
     messagingTemplate.convertAndSend("/lobby", disconnectMessage);
 
     if (wasGameRemoved) {

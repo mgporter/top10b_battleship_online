@@ -23,8 +23,8 @@ public class LoggingAspect {
     String methodName = joinPoint.getSignature().getName();
     Object[] arguments = joinPoint.getArgs();
 
-    // logger.info(className + "." + methodName + " called with arguments: " + Arrays.asList(arguments) + "\n");
-    System.out.println(className + "." + methodName + " called with arguments: " + Arrays.asList(arguments) + "\n");
+    logger.info(className + "." + methodName + " called with arguments: " + Arrays.asList(arguments) + "\n");
+    // System.out.println(className + "." + methodName + " called with arguments: " + Arrays.asList(arguments) + "\n");
 
     return joinPoint.proceed();
   }

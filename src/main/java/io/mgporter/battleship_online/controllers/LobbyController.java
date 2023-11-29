@@ -92,11 +92,7 @@ public class LobbyController {
 
 
   /**
-   * Sends a message to the lobby when the player joins (that is, when the client
-   * sends a /joinLobby packet). If the user has a name that they have used previously,
-   * then it is sent in the payload, and we can set it to their name. In this way, the name is
-   * set by the user unless they do not have one, while the playerId is set by the server. This
-   * information is sent back to the client in the CREDENTIALS packet.
+   * Sends a message to the lobby when the player joins.
    * 
    * @param username
    * @param principal

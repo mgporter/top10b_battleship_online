@@ -347,7 +347,7 @@ public class GameController {
       gameRoom.getGameState().getPlayerTwoId(),
       PacketType.PLAYERLIST_UPDATE
     );
-    messagingTemplate.convertAndSend("/game/playerlist/" + gameRoom.getRoomNumber(), packet);
+    messagingTemplate.convertAndSend("/game/public/" + gameRoom.getRoomNumber(), packet);
   }
 
 }

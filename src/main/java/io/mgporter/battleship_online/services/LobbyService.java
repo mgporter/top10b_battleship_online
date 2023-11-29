@@ -148,10 +148,6 @@ public class LobbyService {
     return gameRoom;
   }
 
-  // public Optional<GameRoom> leaveGameRoom(StompPrincipal principal) {
-  //   return leaveGameRoom(principal, principal.getRoomNumber());
-  // }
-
   public void deleteGameRoom(int roomNumber) {
     mongoTemplate.findAndRemove(
       Query.query(
