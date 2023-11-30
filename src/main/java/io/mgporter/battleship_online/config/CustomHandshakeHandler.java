@@ -1,6 +1,5 @@
 package io.mgporter.battleship_online.config;
 
-import java.io.IOException;
 import java.security.Principal;
 import java.util.Map;
 import java.util.UUID;

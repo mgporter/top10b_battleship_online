@@ -1,8 +1,6 @@
 package io.mgporter.battleship_online.config;
 
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
 
 import io.mgporter.battleship_online.models.Constants;
 import lombok.Data;

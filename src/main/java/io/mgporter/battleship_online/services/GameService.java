@@ -71,7 +71,7 @@ public class GameService {
     return gameRoom;
   }
 
-  public void resetGameState(GameState gameState) {
+  public void resetGameStateWith(GameState gameState) {
     this.gameState = gameState;
     this.playerOneGameboard = new Gameboard();
     this.playerTwoGameboard = new Gameboard();
@@ -102,29 +102,29 @@ public class GameService {
   }
 
   public void loadDataToBoard(GameState gameState) {
-    resetGameState(gameState);
+    resetGameStateWith(gameState);
 
-    for (Ship ship : gameState.playerOneShipList) {
+    for (Ship ship : gameState.getPlayerOneShipList()) {
       playerOneGameboard.placeShip(ship);
     }
 
-    for (Ship ship : gameState.playerTwoShipList) {
+    for (Ship ship : gameState.getPlayerTwoShipList()) {
       playerTwoGameboard.placeShip(ship);
     }
 
-    for (Coordinate c : gameState.playerOnesAttacks) {
+    for (Coordinate c : gameState.getPlayerOnesAttacks()) {
       playerTwoGameboard.receiveAttack(c);
     }
 
-    for (Coordinate c : gameState.playerTwosAttacks) {
+    for (Coordinate c : gameState.getPlayerTwosAttacks()) {
       playerOneGameboard.receiveAttack(c);
     }
   }
 
   public void addAttackResult(String id, byte row, byte col, PacketType result) {
     boolean isPlayerOne = gameState.isPlayerOne(id);
-    if (isPlayerOne) gameState.playerOnesAttacks.add(new CoordinateAttack(row, col, result));
-    else gameState.playerTwosAttacks.add(new CoordinateAttack(row, col, result));
+    if (isPlayerOne) gameState.getPlayerOnesAttacks().add(new CoordinateAttack(row, col, result));
+    else gameState.getPlayerTwosAttacks().add(new CoordinateAttack(row, col, result));
   }
 
   public List<Ship> getPlayerOnesShips() {
@@ -162,6 +162,12 @@ public class GameService {
 
   public String getPlayerTwoId() {
     return this.gameState.getPlayerTwoId();
+  }
+
+  public void setMyShipsPlaced(String id, byte count) {
+    boolean isPlayerOne = gameState.isPlayerOne(id);
+    if (isPlayerOne) gameState.setPlayerOneShipsPlacedCount(count);
+    else gameState.setPlayerTwoShipsPlacedCount(count);
   }
 
   @Override

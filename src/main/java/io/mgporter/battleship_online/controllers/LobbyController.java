@@ -18,7 +18,6 @@ import java.util.Set;
 import io.mgporter.battleship_online.config.StompPrincipal;
 import io.mgporter.battleship_online.enums.MessageType;
 import io.mgporter.battleship_online.models.Constants;
-import io.mgporter.battleship_online.models.CredentialMessage;
 import io.mgporter.battleship_online.models.GameRoom;
 import io.mgporter.battleship_online.models.Message;
 import io.mgporter.battleship_online.models.Player;

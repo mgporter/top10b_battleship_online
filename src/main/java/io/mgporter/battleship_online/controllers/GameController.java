@@ -14,10 +14,12 @@ import io.mgporter.battleship_online.enums.PacketType;
 import io.mgporter.battleship_online.models.Constants;
 import io.mgporter.battleship_online.models.Coordinate;
 import io.mgporter.battleship_online.models.GameRoom;
+import io.mgporter.battleship_online.models.GameState;
 import io.mgporter.battleship_online.models.Message;
 import io.mgporter.battleship_online.models.Ship;
 import io.mgporter.battleship_online.packets.AttackPacket;
 import io.mgporter.battleship_online.packets.GamePacket;
+import io.mgporter.battleship_online.packets.GameStartPacket;
 import io.mgporter.battleship_online.packets.LoadGamePacket;
 import io.mgporter.battleship_online.packets.PlacementPacket;
 import io.mgporter.battleship_online.packets.PlayerListPacket;
@@ -54,9 +56,8 @@ public class GameController {
 
 
   /**
-  * Currently, the clients just count the number of placed_ship packets
-  * to get the number placed by the opponent. Players cannot remove ships,
-  * so this works for now.
+  * Sends out a notification to the players that a ship has
+  * been placed.
   *
   * @param packet
   * @param principal
@@ -70,7 +71,7 @@ public class GameController {
 
 
   /** 
-   * When a player finishes ship placement by pressing the start button, a packet is set to this
+   * When a player finishes ship placement by pressing the start button, a packet is send to this
    * routing. Once both players have finished placing their ships, the server informs the
    * clients with a PLACED_COMPLETE packet. The clients then send another packet to invoke
    * the loadGameData method, which loads up the data from the other player.
@@ -91,13 +92,27 @@ public class GameController {
 
     GameRoom gameRoom = gameRoomOptional.get();
 
-    gameService.setGameState(gameRoom.getGameState());
+    GameState gameState = gameRoom.getGameState();
+    gameService.setGameState(gameState);
     gameService.saveShipsInGameState(principal.getPlayerId(), packet.placementList);
     lobbyService.saveGameRoom(gameRoom);
 
     if (gameService.allPlacementsComplete()) {
       sendPlacedCompletedPacket(principal.getRoomNumber());
+    } else {
+
+      /* Inform the opponent that a player has finished placing
+       * their ships.
+       */
+
+      boolean playerOneHasPlaced = gameState.playerOnesPlacementsComplete();
+      boolean playerTwoHasPlaced = gameState.playerTwosPlacementsComplete();
+
+      GameStartPacket gameStartPacket = new GameStartPacket(playerOneHasPlaced, playerTwoHasPlaced);
+      messagingTemplate.convertAndSend("/game/public/" + principal.getRoomNumber(), gameStartPacket);  
     }
+
+
   }
 
   private void sendPlacedCompletedPacket(int roomNumber) {
@@ -168,7 +183,7 @@ public class GameController {
       loadGamePacket.setOpponentAttacks(gameService.getPlayerOnesAttackResults());
       loadGamePacket.setGoFirst(!playerOneGoesFirst);
       loadGamePacket.setOpponentHasPlaced(gameService.getPlayerOnesShips().size() == Constants.MAXSHIPS);
-
+      
     }
     
     messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/game", loadGamePacket);
@@ -304,34 +319,31 @@ public class GameController {
     if (gameRoomOptional.isEmpty()) return;
     GameRoom gameRoom = gameRoomOptional.get();
 
-    gameService.resetGameState(gameRoom.getGameState());
+    GameState gameState = gameRoom.getGameState();
+
+    gameService.resetGameStateWith(gameState);
 
     broadcastUpdatedPlayerList(gameRoom);
 
-    // There are at least two players in the room
-    if (!gameRoom.getGameState().bothPlayersReady()) return;
+    // There are not at least two players in the room, stop here
+    if (!gameState.bothPlayersReady()) return;
     
     // If the incoming player has not placed ships yet, send them the Game Start packet.
     // If they have placed ships (i.e., they are taking over for a player that left after
     // placing ships), then load the game data.
 
-    if (!gameRoom.getGameState().myPlacementsComplete(principal.getPlayerId())) {
-      sendGameStartPacket(principal.getRoomNumber());
-    } else {
+    boolean playerOneHasPlaced = gameState.playerOnesPlacementsComplete();
+    boolean playerTwoHasPlaced = gameState.playerTwosPlacementsComplete();
+    boolean myPlacementsComplete = gameState.isPlayerOne(principal.getPlayerId()) ?
+      playerOneHasPlaced : playerTwoHasPlaced;
+
+    if (myPlacementsComplete) {
       loadInProgressGameData(principal, gameRoom);
-    }
+    } 
+
+    GameStartPacket packet = new GameStartPacket(playerOneHasPlaced, playerTwoHasPlaced);
+    messagingTemplate.convertAndSend("/game/public/" + principal.getRoomNumber(), packet);   
   }
-
-  /**
-   * When the clients receive a GameStart, ship placement begins.
-   * 
-   * @param roomNumber
-    */
-
-  private void sendGameStartPacket(int roomNumber) {
-    messagingTemplate.convertAndSend("/game/public/" + roomNumber, new GamePacket(PacketType.GAME_START));
-  }
-
 
   /**
    * Send an updated PlayerList to everybody in the game room to inform them who else is in the

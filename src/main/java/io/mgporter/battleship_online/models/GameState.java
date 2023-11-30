@@ -18,10 +18,12 @@ public class GameState {
 
   private String playerOneId;
   private String playerTwoId;
-  public List<Ship> playerOneShipList;
-  public List<Ship> playerTwoShipList;
-  public List<CoordinateAttack> playerOnesAttacks;
-  public List<CoordinateAttack> playerTwosAttacks;
+  private List<Ship> playerOneShipList;
+  private List<Ship> playerTwoShipList;
+  private byte playerOneShipsPlacedCount;
+  private byte playerTwoShipsPlacedCount;
+  private List<CoordinateAttack> playerOnesAttacks;
+  private List<CoordinateAttack> playerTwosAttacks;
 
   public GameState() {
     this.playerOneShipList = new ArrayList<>(Constants.MAXSHIPS);
@@ -61,6 +63,38 @@ public class GameState {
     if (isPlayerTwo(id)) return playerTwoShipList.size() == Constants.MAXSHIPS;
     else return false;
   }
+
+  public boolean playerOnesPlacementsComplete() {
+    return playerOneShipList.size() == Constants.MAXSHIPS;
+  }
+
+  public boolean playerTwosPlacementsComplete() {
+    return playerTwoShipList.size() == Constants.MAXSHIPS;
+  }
+
+  /**
+   * @param id
+   * @return true if the id's opponent has completed their ship placements, otherwise false. Also
+   * returns false if the id is not playerOne or playerTwo.
+    */
+
+  public boolean opponentsPlacementsComplete(String id) {
+    if (isPlayerOne(id)) return playerTwoShipList.size() == Constants.MAXSHIPS;
+    if (isPlayerTwo(id)) return playerOneShipList.size() == Constants.MAXSHIPS;
+    else return false;
+  }
+
+  /**
+   * @param id
+   * @return the number of ships that id's opponent has placed, or -1 if the id
+   * does not match playerOne or playerTwo.
+    */
+
+  public byte opponentsShipsPlacedCount(String id) {
+    if (isPlayerOne(id)) return playerTwoShipsPlacedCount;
+    if (isPlayerTwo(id)) return playerOneShipsPlacedCount;
+    else return -1;
+  }    
 
   /**
    * Update playerOne's and playerTwo's IDs based on the new player list passed in.
